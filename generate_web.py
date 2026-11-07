@@ -171,6 +171,21 @@ def generate_html():
     kelly_base_pct = tuning_info.get('half_kelly_pct', 60.0)
     recommended_invest_pct = int(round(max(15.0, min(80.0, kelly_base_pct * (1.0 - (ai_risk_score / 115.0))))))
 
+    # 칼만 필터(Kalman Filter) 기반 최근 승률 적응형 켈리 자기보정 적용
+    try:
+        from src.kalman_kelly import calibrate_kelly_with_kalman
+        kalman_res = calibrate_kelly_with_kalman(base_invest_pct=recommended_invest_pct, risk_score=ai_risk_score)
+        kalman_win_rate = kalman_res['filtered_win_rate']
+        kalman_rr = kalman_res['filtered_rr_ratio']
+        kalman_mom = kalman_res['momentum_label']
+        if ai_risk_score <= 50 and kalman_res.get('calibrated_pct', 0) > 0:
+            recommended_invest_pct = int(round(kalman_res['calibrated_pct']))
+    except Exception as e:
+        kalman_res = None
+        kalman_win_rate = kelly_win_rate
+        kalman_rr = kelly_rr
+        kalman_mom = "⚖️ 정상 중립"
+
     # 종가베팅(15:10)은 익일 09:00 시초가 매도 전략이므로
     # 15:00~15:45 정규장 마감 시간대가 아닐 때는 직전 공식 확정 종목을 그대로 고정보존
     if not is_closing_window and latest_record and latest_record.get('picks'):
@@ -3111,12 +3126,13 @@ def generate_html():
     <div style="background: linear-gradient(135deg, rgba(30, 58, 138, 0.22), rgba(17, 24, 39, 0.95)); border: 1px solid rgba(59, 130, 246, 0.35); border-left: 4px solid #3b82f6; border-radius: 14px; padding: 16px 20px; margin-bottom: 18px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
             <div>
-                <div style="font-size:0.96rem; font-weight:800; color:#f9fafb; display:flex; align-items:center; gap:8px;">
+                <div style="font-size:0.96rem; font-weight:800; color:#f9fafb; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     💰 AI 리스크 & 하프 켈리(Half-Kelly) 실전 시드머니 계산기
                     <span style="font-size:0.72rem; background:rgba(59,130,246,0.2); color:#60a5fa; padding:2px 8px; border-radius:999px; border:1px solid rgba(59,130,246,0.4);">전체 종목 카드 실시간 연동</span>
+                    <span style="font-size:0.72rem; background:rgba(168,85,247,0.2); color:#c084fc; padding:2px 8px; border-radius:999px; border:1px solid rgba(168,85,247,0.4);">🤖 칼만 필터(Kalman) 적응형 자기보정</span>
                 </div>
                 <div style="font-size:0.78rem; color:#9ca3af; margin-top:2px;">
-                    최근 30일 승률(<b>{kelly_win_rate}%</b>) · 손익비(<b>{kelly_rr}:1</b>) · 오늘 AI 리스크(<b>{ai_risk_score}점</b>)를 결합해 수학적 파산 확률 0%의 최적 종목당 베팅액을 산출합니다.
+                    최근 30일 승률(<b>{kelly_win_rate}%</b>) · 칼만 추정 승률(<b>{kalman_win_rate}%</b>) · 손익비(<b>{kalman_rr}:1</b>) · 모멘텀(<b>{kalman_mom}</b>) · AI 리스크(<b>{ai_risk_score}점</b>) 결합 최적 베팅액 산출
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.35); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
