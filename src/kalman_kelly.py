@@ -160,3 +160,4 @@ def calibrate_kelly_with_kalman(
             kf.update(t['is_win'], t['ret_pct'])
 
     return kf.get_calibrated_kelly(risk_score=risk_score, default_base_pct=base_invest_pct)
+
