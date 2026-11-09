@@ -842,15 +842,22 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     #           4) 정량적 손익비 (익절 +5~9%, 손절 -3%)
     # =========================================================================
     swing_picks = []
+    # 4대 엄격 기준:
+    # 1) 시총 3,000억 ~ 10조원 주도 유망주
+    # 2) 당일 거래대금 100억 이상 (소외주/잡주 원천 차단)
+    # 3) 당일 양봉 필수 (ChagesRatio >= 0.0 & Close >= Open, 음봉 절대 매수 금지)
+    # 4) 20일선 위 5% 이내 눌림목 지지 & 5일선-20일선 정배열
+    # 5) AI 종합 점수 80점 이상 엄격 컷오프 (미달 시 추천 없음: 100% 현금 보존)
     swing_pool = common[
-        (common['Marcap'] >= 4000 * 1e8) &     # 시총 4,000억 이상 (소형주 배제)
-        (common['Marcap'] <= 100000 * 1e8) &   # 시총 10조원 이하 (초대형 지수주 배제)
-        (common['Amount'] >= 30 * 1e8) &       # 당일 거래대금 30억 이상
-        (common['ChagesRatio'] >= -2.0) &
-        (common['ChagesRatio'] <= 6.5)         # 과열되지 않은 눌림목/초입 양봉
+        (common['Marcap'] >= 3000 * 1e8) &     # 시총 3,000억 이상
+        (common['Marcap'] <= 100000 * 1e8) &   # 시총 10조원 이하
+        (common['Amount'] >= 100 * 1e8) &      # 당일 거래대금 100억 이상 (주도력 확보)
+        (common['ChagesRatio'] >= 0.0) &       # 음봉 배제 (0% 이상 보합/상승)
+        (common['ChagesRatio'] <= 6.5) &       # 과열되지 않은 초입 양봉
+        (common['Close'] >= common['Open'])    # 당일 시가 대비 양봉 확인
     ].copy()
 
-    swing_pool = swing_pool.sort_values(by='Amount', ascending=False).head(15)
+    swing_pool = swing_pool.sort_values(by='Amount', ascending=False).head(20)
 
     for _, row in swing_pool.iterrows():
         code = str(row['Code'])
@@ -867,18 +874,19 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             df = fdr.DataReader(code, start=start_date)
             if len(df) < 25:
                 continue
-            closes = df['Close'].values
+            closes = df['Close'].values[-25:]
             ma5 = float(pd.Series(closes).rolling(5).mean().values[-1])
             ma20 = float(pd.Series(closes).rolling(20).mean().values[-1])
             ma20_prev = float(pd.Series(closes).rolling(20).mean().values[-5])
 
-            # 20일선 우상향 추세
-            is_uptrend = ma20 >= ma20_prev * 0.992
-            # 주가가 20일선 부근에 위치 (이격도 5% 이내)
-            dist_ma20 = abs(close_p - ma20) / close_p * 100
-            is_near_ma20 = (close_p >= ma20 * 0.975) and (dist_ma20 <= 5.0)
+            # 20일선 우상향 & 5일선-20일선 정배열
+            is_uptrend = ma20 >= ma20_prev
+            is_golden = ma5 >= ma20 * 0.995
+            # 주가가 20일선 위에 안착하고 5% 이내 위치
+            dist_ma20 = (close_p - ma20) / close_p * 100
+            is_near_ma20 = (close_p >= ma20) and (dist_ma20 <= 5.0)
 
-            if is_uptrend and is_near_ma20:
+            if is_uptrend and is_golden and is_near_ma20:
                 score = 65.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
                 reasons = [f"20일선({int(ma20):,}원) 눌림목 지지", f"이격도 {dist_ma20:.1f}% 안정 구간"]
                 tags = ['20일선눌림목', '추세우상향', '안정적손익비']
@@ -887,6 +895,10 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     score += 12.0
                     reasons.append("실적/호재 공시 연계")
                     tags.append("실적모멘텀")
+
+                # AI 점수 80점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
+                if score < 80.0:
+                    continue
 
                 stg = resolve_swing_targets(close_p, regime=regime, market_context=market_context)
                 swing_picks.append({

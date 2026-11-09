@@ -399,6 +399,8 @@ def get_closing_betting_guide():
                 if s.get('reason'):
                     msg += f"   ├ 💡 <b>선정 이유</b>: <i>{s['reason']}</i>\n"
                 msg += f"   └ 📱 <a href=\"{chart_url}\">네이버 증권 차트/호가 바로보기 ↗</a>\n\n"
+        else:
+            msg += "\n🚀 <b>오늘의 2~5일 스윙 추천주</b>: 🛡️ 오늘 시장 조건(20일선 정배열 눌림목 & 양봉 돌파)에 부합하는 알짜 주도주가 없어 <b>신규 매수를 전면 보류(0종목)</b>하고 100% 현금을 보존합니다.\n\n"
     except Exception as e:
         logger.warning(f"종가베팅 추천 종목 조회 실패: {e}")
 
