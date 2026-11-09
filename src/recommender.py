@@ -857,7 +857,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         (common['Close'] >= common['Open'])    # 당일 시가 대비 양봉 확인
     ].copy()
 
-    swing_pool = swing_pool.sort_values(by='Amount', ascending=False).head(20)
+    # 거래대금 순으로 정렬하되, 임의의 개수 제한(.head) 없이 1차 조건을 만족한 전종목을 100% 전수 검사
+    swing_pool = swing_pool.sort_values(by='Amount', ascending=False)
 
     for _, row in swing_pool.iterrows():
         code = str(row['Code'])
