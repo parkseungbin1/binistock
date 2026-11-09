@@ -33,7 +33,7 @@ def main():
     parser = argparse.ArgumentParser(description="BiniStock 스마트 디스패처")
     parser.add_argument('--action', default='auto',
                         choices=['auto', 'digest_0700', 'morning_735', 'disclosure_0810',
-                                 'morning_835', 'midday_1300', 'preclosing_1400', 'closing_1510', 'night_1940'],
+                                 'morning_835', 'midday_1300', 'preclosing_1400', 'closing_1510', 'close_1535', 'night_1940'],
                         help="수동 액션 강제 지정 (기본값: auto - 현재 시각 기준 자동 판별)")
     args = parser.parse_args()
 
@@ -62,8 +62,10 @@ def main():
             action = 'midday_1300'
         elif hour == 14 and minute < 45:
             action = 'preclosing_1400'
-        elif (hour == 14 and minute >= 45) or (15 <= hour < 17):
+        elif (hour == 14 and minute >= 45) or (hour == 15 and minute < 28):
             action = 'closing_1510'
+        elif (hour == 15 and minute >= 28) or (hour == 16):
+            action = 'close_1535'
         elif 19 <= hour <= 21:
             action = 'night_1940'
         else:
@@ -98,6 +100,10 @@ def main():
 
     elif action == 'closing_1510':
         run_py('market_alert.py', ['--mode', 'closing', '--force'])
+
+    elif action == 'close_1535':
+        # 15:35 [정규장 최종 마감 시황 & 외인/기관 수급 종합 리포트]
+        run_py('market_alert.py', ['--mode', 'close_1535', '--force'])
 
     elif action == 'night_1940':
         # 6. 19:40 [20:00 NXT 야간 최종 종가베팅 가이드] + 야간 대장주 TOP 3

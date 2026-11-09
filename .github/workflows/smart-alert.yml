@@ -17,6 +17,7 @@ on:
           - midday_1300
           - preclosing_1400
           - closing_1510
+          - close_1535
           - night_1940
 
 permissions:

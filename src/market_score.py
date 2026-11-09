@@ -718,6 +718,94 @@ def get_preclosing_guide():
     return msg
 
 
+# ==========================================================
+# 3-2. [오후 15:35] 정규장 최종 마감 시황 & 외인/기관 최종 수급 종합 리포트
+# ==========================================================
+def get_market_close_guide():
+    """
+    [오후 15:35] 정규장 최종 마감 시황 & 외인/기관 최종 수급 종합 리포트
+    15:30 정규장 종료 직후 당일 양대 시장 결과와 종가베팅/스윙 성적을 종합 브리핑합니다.
+    """
+    kp_close, kp_ratio, kp_for, kp_inst, kp_for_num, kp_inst_num = fetch_kr_market('KOSPI')
+    kd_close, kd_ratio, kd_for, kd_inst, kd_for_num, kd_inst_num = fetch_kr_market('KOSDAQ')
+    fut_price, fut_ratio = fetch_nasdaq_futures()
+    fx_close, fx_ratio, _ = fetch_usdkrw()
+    vix_close, vix_ratio = fetch_vix()
+    us10y_price, us10y_diff = fetch_us10y()
+
+    def arr(r):
+        return '🔺' if r > 0 else ('🔻' if r < 0 else '➖')
+
+    kp_arr = arr(kp_ratio)
+    kd_arr = arr(kd_ratio)
+    fut_arr = arr(fut_ratio) if fut_price else ''
+    fx_desc = '원화 강세' if fx_ratio < 0 else '원화 약세'
+    vix_str = f"🌪️ VIX: <b>{vix_close}</b>" if vix_close else ""
+    us10y_str = f"📈 美10년물: <b>{us10y_price:.2f}%</b>" if us10y_price else ""
+
+    now_kst = datetime.now(KST)
+    ko_wd = ['월', '화', '수', '목', '금', '토', '일'][now_kst.weekday()]
+    date_str = f"{now_kst.strftime('%m/%d')}({ko_wd})"
+
+    total_major = kp_for_num + kp_inst_num + kd_for_num + kd_inst_num
+    if total_major >= 3000:
+        market_summary = "외인·기관의 강력한 쌍끌이 순매수로 양대 시장이 탄탄하게 마감되었습니다."
+    elif total_major <= -3000:
+        market_summary = "외인·기관의 동반 순매도세로 지수 하방 압력을 받으며 보수적으로 마감되었습니다."
+    else:
+        market_summary = "외인·기관의 수급 공방 속에 개별 종목 장세로 정규장이 마감되었습니다."
+
+    msg = f"🏁 <b>[15:35 정규장 최종 마감 종합 리포트]</b> ({date_str} 15:35 알림)\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n"
+    msg += f"📢 <b>장 마감 총평</b>: <b>{market_summary}</b>\n"
+    msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
+
+    msg += "📊 <b>1. 정규장 최종 마감 지수 & 수급</b>\n"
+    msg += f"• 🇰🇷 코스피: <b>{kp_close}</b> ({kp_ratio:+.2f}%) {kp_arr} | 외인 <b>{kp_for}억</b>, 기관 <b>{kp_inst}억</b>\n"
+    msg += f"• 🇰🇷 코스닥: <b>{kd_close}</b> ({kd_ratio:+.2f}%) {kd_arr} | 외인 <b>{kd_for}억</b>, 기관 <b>{kd_inst}억</b>\n"
+    if fut_price:
+        msg += f"• 🇺🇸 NQ선물: <b>{fut_price:,.1f}</b> ({fut_ratio:+.2f}%) {fut_arr} | 💱 마감 환율: <b>{fx_close}원</b> ({fx_desc})\n"
+    if vix_str and us10y_str:
+        msg += f"• {vix_str} | {us10y_str}\n"
+
+    try:
+        from src.recommender import get_recommendations
+        rec = get_recommendations()
+        closing_picks = rec.get('closing', [])
+        swing_picks = rec.get('swing', [])
+
+        if closing_picks:
+            msg += "\n🎯 <b>2. 오늘 AI 종가베팅 주도주 최종 종가</b>\n"
+            for idx, s in enumerate(closing_picks[:2], 1):
+                chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
+                msg += f"• {idx}등: <a href=\"{chart_url}\"><b>{s['name']}</b></a> ({s.get('change_pct', 0.0):+.2f}%) — 마감가 <b>{s.get('price', 0):,}원</b>\n"
+                msg += f"  ↳ 1차 익절목표: {s.get('target_1', 0):,}원 (+2~3%) | 손절선: {s.get('stop_loss', 0):,}원 (-2%)\n"
+
+        if swing_picks:
+            msg += "\n🚀 <b>3. 2~5일 스윙 주도주 최종 종가</b>\n"
+            for idx, s in enumerate(swing_picks[:2], 1):
+                chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
+                msg += f"• <a href=\"{chart_url}\"><b>{s['name']}</b></a> ({s.get('change_pct', 0.0):+.2f}%) — 마감가 <b>{s.get('price', 0):,}원</b> (거래대금 {s.get('amount_eok', 0):,}억)\n"
+    except Exception as e:
+        logger.warning(f"마감 추천 종목 로드 실패: {e}")
+
+    try:
+        from src.market_flow import get_market_flow_data
+        flow = get_market_flow_data()
+        sectors = flow.get("sectors", [])
+        if sectors:
+            top_secs = [f"<b>{s['sector_name']}</b> {s['stars']}({s['total_volume_str']})" for s in sectors[:3]]
+            msg += f"\n💸 <b>정규장 머니플로우 자금 집중 TOP 3</b>\n• " + " | ".join(top_secs) + "\n"
+    except Exception:
+        pass
+
+    msg += "\n🌙 <b>4. Nextrade 야간마켓 & 향후 일정</b>\n"
+    msg += "• <b>넥스트레이드(Nextrade) 애프터마켓</b>: 15:30 ~ 20:00 거래 진행 중\n"
+    msg += "• <b>19:40</b>: 20:00 야간마켓 종료 20분 전 [최종 오버나잇 판정 가이드] 발송 예정\n"
+    msg += f"\n🔗 <b>실시간 대시보드</b>: {DASHBOARD_URL}"
+    return msg
+
+
 def get_market_score_message(mode=None):
     """
     지정된 mode 또는 현재 KST 시간에 맞춰 가이드 반환
@@ -735,8 +823,10 @@ def get_market_score_message(mode=None):
             mode = 'midday_1300'
         elif hour == 14 and minute < 45:
             mode = 'preclosing_1400'
-        elif (hour == 14 and minute >= 45) or (15 <= hour < 17):
+        elif (hour == 14 and minute >= 45) or (hour == 15 and minute < 28):
             mode = 'closing'
+        elif (hour == 15 and minute >= 28) or (16 <= hour < 18):
+            mode = 'close_1535'
         else:
             mode = 'night'
 
@@ -750,5 +840,7 @@ def get_market_score_message(mode=None):
         return get_preclosing_guide()
     elif mode == 'closing':
         return get_closing_betting_guide()
+    elif mode in ('close_1535', 'market_close'):
+        return get_market_close_guide()
     else:
         return get_evening_betting_guide()
