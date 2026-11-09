@@ -397,9 +397,9 @@
           "highest_price": 101600,
           "lowest_price": 95700,
           "max_return_pct": 4.1,
-          "status": "진행중 (3일차)",
+          "status": "진행중 (4일차)",
           "completed": false,
-          "holding_days": 3,
+          "holding_days": 4,
           "rule_v": 1,
           "final_return_pct": -0.23,
           "is_success": false
