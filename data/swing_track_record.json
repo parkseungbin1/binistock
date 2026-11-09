@@ -645,6 +645,49 @@
       "blocked": true,
       "risk_score": 56,
       "block_reason": "AI 리스크 56점 [DANGER] 고위험 차단으로 스윙 신규 매수 전면 차단 (100% 현금 보존)"
+    },
+    {
+      "date": "2026-11-09",
+      "picks": [
+        {
+          "code": "271560",
+          "name": "오리온",
+          "market": "KOSPI",
+          "sector": "기타 식품",
+          "catalyst": "‘불닭의 힘’ 삼양식품 영업익 신기록…농심·오리온·웰푸드도 장밋",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/011/0004679618",
+          "catalyst_source": "서울경제",
+          "entry_price": 117100,
+          "price": 117100,
+          "change_pct": -1.1,
+          "amount_eok": 443,
+          "marcap": 4628821074800,
+          "marcap_str": "4조 6,288억",
+          "target_1": 122955,
+          "target_1_pct": "+5.0%",
+          "target_2": 127639,
+          "target_2_pct": "+9.0%",
+          "stop_loss": 113587,
+          "stop_loss_pct": "-3.0%",
+          "rule_v": 1,
+          "score": 75,
+          "reason": "20일선(112,715원) 눌림목 지지 · 이격도 3.7% 안정 구간",
+          "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
+          "tags": [
+            "20일선눌림목",
+            "추세우상향",
+            "안정적손익비"
+          ],
+          "chart_url": "https://m.stock.naver.com/domestic/stock/271560/total",
+          "highest_price": 117100,
+          "lowest_price": 117100,
+          "max_return_pct": 0.0,
+          "status": "진행중",
+          "completed": false,
+          "holding_days": 0
+        }
+      ],
+      "evaluated": false
     }
   ]
 }
