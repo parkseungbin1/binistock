@@ -380,6 +380,25 @@ def get_closing_betting_guide():
                     msg += f"   ├ 📰 <b>핵심재료</b>: <a href=\"{cat_url}\"><i>{cat}</i>{src_tag} ↗</a>\n"
                 msg += f"   ├ 🎯 <b>목표가</b>: <b>{s['target_1']:,}원</b> (+3%) | 손절: {s['stop_loss']:,}원 (-2%)\n"
                 msg += f"   └ 📱 <a href=\"{chart_url}\">네이버 증권 차트/호가 바로보기 ↗</a>\n\n"
+
+        swing_picks = rec.get('swing', [])
+        if swing_picks:
+            msg += "\n🚀 <b>오늘의 2~5일 스윙 추천주 TOP 3 (20일선 눌림목 반등)</b>\n"
+            for idx, s in enumerate(swing_picks[:3], 1):
+                chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
+                sec = s.get('sector', '우량스윙')
+                marcap_str = s.get('marcap_str') or (format_marcap(s.get('marcap')) if s.get('marcap') else '')
+                marcap_part = f" | 🏢 시총: <b>{marcap_str}</b>" if marcap_str else ""
+                hold_period = s.get('holding_period', '2~5거래일')
+                target_2_str = f" | 🚀 <b>2차 목표</b>: <b>{s['target_2']:,}원</b> (+9%)" if s.get('target_2') else ""
+
+                msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code>\n"
+                msg += f"   ├ 💰 거래대금: <b>{s['amount_eok']:,}억</b>{marcap_part} (종가: {s['price']:,}원)\n"
+                msg += f"   ├ 🎯 <b>1차 목표</b>: <b>{s['target_1']:,}원</b> (+5%){target_2_str}\n"
+                msg += f"   ├ 🛡️ <b>손절 기준선</b>: {s['stop_loss']:,}원 (-3%) | ⏳ <b>권장 보유</b>: {hold_period}\n"
+                if s.get('reason'):
+                    msg += f"   ├ 💡 <b>선정 이유</b>: <i>{s['reason']}</i>\n"
+                msg += f"   └ 📱 <a href=\"{chart_url}\">네이버 증권 차트/호가 바로보기 ↗</a>\n\n"
     except Exception as e:
         logger.warning(f"종가베팅 추천 종목 조회 실패: {e}")
 
