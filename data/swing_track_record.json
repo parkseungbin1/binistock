@@ -680,14 +680,16 @@
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/271560/total",
           "highest_price": 116100,
-          "lowest_price": 113600,
+          "lowest_price": 113100,
           "max_return_pct": -0.85,
-          "status": "진행중 (1일차)",
-          "completed": false,
-          "holding_days": 1
+          "status": "손절 이탈",
+          "completed": true,
+          "holding_days": 1,
+          "is_success": false,
+          "final_return_pct": -3.0
         }
       ],
-      "evaluated": false
+      "evaluated": true
     }
   ]
 }
