@@ -397,15 +397,15 @@
           "highest_price": 101600,
           "lowest_price": 95700,
           "max_return_pct": 4.1,
-          "status": "진행중 (4일차)",
-          "completed": false,
-          "holding_days": 4,
+          "status": "기간 만료",
+          "completed": true,
+          "holding_days": 5,
           "rule_v": 1,
-          "final_return_pct": -0.23,
-          "is_success": false
+          "final_return_pct": 1.13,
+          "is_success": true
         }
       ],
-      "evaluated": false
+      "evaluated": true
     },
     {
       "date": "2026-11-04",
@@ -679,12 +679,12 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/271560/total",
-          "highest_price": 116400,
-          "lowest_price": 116400,
-          "max_return_pct": 0.0,
-          "status": "진행중",
+          "highest_price": 116100,
+          "lowest_price": 113600,
+          "max_return_pct": -0.85,
+          "status": "진행중 (1일차)",
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1
         }
       ],
       "evaluated": false

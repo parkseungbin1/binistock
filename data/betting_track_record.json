@@ -1149,17 +1149,17 @@
           "catalyst_url": "https://n.news.naver.com/mnews/article/018/0006402559",
           "catalyst_source": "이데일리",
           "catalyst_body": "안랩(053800), 해킹 피해 확산에 장초반 17% 급등…보안주 고공행진 보안주가 3일 장초반 강세를 이어가고 있다. 잇따른 해킹 사고로 사이버보안의 중요성이 부각되면서 관련 기업들이 새로운 수혜",
-          "close_price": 106700,
-          "price": 106700,
+          "close_price": 105900,
+          "price": 105900,
           "change_pct": 7.67,
           "amount_eok": 494,
           "marcap": 1187198190200,
           "marcap_str": "1조 1,872억",
-          "target_1": 109901,
+          "target_1": 109077,
           "target_1_pct": "+3.0%",
-          "target_2": 112035,
+          "target_2": 111195,
           "target_2_pct": "+5.0%",
-          "stop_loss": 104566,
+          "stop_loss": 103782,
           "stop_loss_pct": "-2.0%",
           "score": 94,
           "reason": "거래대금 494억 폭발 주도주 · 고가 마감 양봉(윗꼬리 21%) · 차트: ⚡ 20일선 지지 우상향 파동 · 당일 VWAP 상회(+1.4% · 고점 14:38) · 🔥당일 주도섹터(제약/바이오) 동조화",
@@ -1172,9 +1172,14 @@
             "우상향파동"
           ],
           "sr_status": "⚡ 20일선 지지 우상향 파동",
-          "support_price": 95955,
+          "support_price": 103782,
           "next_resistance": "137,300원 (+28.7%)",
-          "chart_url": "https://m.stock.naver.com/domestic/stock/053800/total"
+          "chart_url": "https://m.stock.naver.com/domestic/stock/053800/total",
+          "open_price": 104100,
+          "next_high_price": 108800,
+          "gap_pct": -1.7,
+          "high_pct": 2.74,
+          "is_success": false
         },
         {
           "code": "064400",
@@ -1185,17 +1190,17 @@
           "catalyst_url": "https://m.stock.naver.com/domestic/stock/064400/disclosure",
           "catalyst_source": "DART 전자공시",
           "catalyst_body": "LG씨엔에스 금융감독원 전자공시시스템(DART) 주요 경영사항 공시",
-          "close_price": 77800,
-          "price": 77800,
+          "close_price": 77600,
+          "price": 77600,
           "change_pct": 4.99,
           "amount_eok": 1133,
           "marcap": 7537726754400,
           "marcap_str": "7조 5,377억",
-          "target_1": 80134,
+          "target_1": 79928,
           "target_1_pct": "+3.0%",
-          "target_2": 81690,
+          "target_2": 81480,
           "target_2_pct": "+5.0%",
-          "stop_loss": 76244,
+          "stop_loss": 76048,
           "stop_loss_pct": "-2.0%",
           "score": 89,
           "reason": "거래대금 1,133억 폭발 주도주 · 고가 마감 양봉(윗꼬리 22%) · 차트: ⚡ 20일선 지지 우상향 파동 · 당일 VWAP 상회(+0.1% · 고점 13:51)",
@@ -1208,12 +1213,19 @@
             "우상향파동"
           ],
           "sr_status": "⚡ 20일선 지지 우상향 파동",
-          "support_price": 72080,
+          "support_price": 76048,
           "next_resistance": "80,300원 (+3.2%)",
-          "chart_url": "https://m.stock.naver.com/domestic/stock/064400/total"
+          "chart_url": "https://m.stock.naver.com/domestic/stock/064400/total",
+          "open_price": 79400,
+          "next_high_price": 82100,
+          "gap_pct": 2.32,
+          "high_pct": 5.8,
+          "is_success": true
         }
       ],
-      "evaluated": false
+      "evaluated": true,
+      "success_count": 1,
+      "total_count": 2
     }
   ]
 }
