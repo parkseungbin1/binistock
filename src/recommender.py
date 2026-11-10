@@ -707,15 +707,20 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         pass
 
     closing_picks = []
+    # [옵션 B: 안정성+탄력 병행 종가베팅 주도주 선별]
+    # 1) 시가총액: 3,000억 이상 ~ 10조 원 이하 (호가창 무거운 10조 초과 초대형주 및 3,000억 미만 작전/잡주 원천 차단)
+    # 2) 당일 거래대금: 최소 300억 이상 (주도 수급 집중 & 익일 시초가 슬리피지 방지)
+    # 3) 당일 주가 상승률: +3.5% ~ +10.0% (건전한 고가 마감 양봉)
     closing_pool = common[
-        (common['Marcap'] >= 1500 * 1e8) &  # 시총 1,500억 이상
-        (common['Amount'] >= 80 * 1e8) &    # 당일 거래대금 최소 80억 이상
-        (common['ChagesRatio'] >= 3.5) &    # 최소 +3.5% 이상
-        (common['ChagesRatio'] <= 10.0)     # 최대 +10.0% 이하
+        (common['Marcap'] >= 3000 * 1e8) &      # 시총 3,000억 이상
+        (common['Marcap'] <= 100000 * 1e8) &    # 시총 10조 원 이하 (10조 초과 공룡주 배제)
+        (common['Amount'] >= 300 * 1e8) &       # 당일 거래대금 최소 300억 이상 (주도주 수급 보장)
+        (common['ChagesRatio'] >= 3.5) &        # 최소 +3.5% 이상
+        (common['ChagesRatio'] <= 10.0)         # 최대 +10.0% 이하
     ].copy()
 
-    # 거래대금 상위 20개 종목 압축 (초고속 스캔)
-    closing_pool = closing_pool.sort_values(by='Amount', ascending=False).head(20)
+    # 거래대금 상위 30개 종목 압축 (3,000억~10조 주도주 풀 전수 정밀 분석)
+    closing_pool = closing_pool.sort_values(by='Amount', ascending=False).head(30)
 
     for _, row in closing_pool.iterrows():
         code = str(row['Code'])
