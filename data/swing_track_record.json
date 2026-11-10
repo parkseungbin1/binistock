@@ -690,6 +690,86 @@
         }
       ],
       "evaluated": true
+    },
+    {
+      "date": "2026-11-10",
+      "picks": [
+        {
+          "code": "003230",
+          "name": "삼양식품",
+          "market": "KOSPI",
+          "sector": "기타 식품",
+          "catalyst": "[특징주] 삼양식품, 원화 강세에 순이익 감소…5.5% 하락 마감(종합)",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/001/0016431667",
+          "catalyst_source": "연합뉴스",
+          "entry_price": 1183000,
+          "price": 1183000,
+          "change_pct": 2.69,
+          "amount_eok": 554,
+          "marcap": 8911556745000,
+          "marcap_str": "8조 9,116억",
+          "target_1": 1242150,
+          "target_1_pct": "+5.0%",
+          "target_2": 1289470,
+          "target_2_pct": "+9.0%",
+          "stop_loss": 1147510,
+          "stop_loss_pct": "-3.0%",
+          "rule_v": 1,
+          "score": 90,
+          "reason": "20일선(1,182,700원) 눌림목 지지 · 이격도 0.0% 안정 구간",
+          "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
+          "tags": [
+            "20일선눌림목",
+            "추세우상향",
+            "안정적손익비"
+          ],
+          "chart_url": "https://m.stock.naver.com/domestic/stock/003230/total",
+          "highest_price": 1183000,
+          "lowest_price": 1183000,
+          "max_return_pct": 0.0,
+          "status": "진행중",
+          "completed": false,
+          "holding_days": 0
+        },
+        {
+          "code": "455890",
+          "name": "RISE 머니마켓액티브",
+          "market": "KOSPI",
+          "sector": "주도주",
+          "catalyst": "[공시] KB RISE 머니마켓액티브증권상장지수투자신탁(채권) ETF유동성공급자(LP)와유동성공급계약의체결ㆍ변경ㆍ해지안내",
+          "catalyst_url": "https://m.stock.naver.com/domestic/stock/455890/disclosure",
+          "catalyst_source": "DART 전자공시",
+          "entry_price": 55842,
+          "price": 55842,
+          "change_pct": 0.0,
+          "amount_eok": 103,
+          "marcap": 3196284396000,
+          "marcap_str": "3조 1,963억",
+          "target_1": 58634,
+          "target_1_pct": "+5.0%",
+          "target_2": 60868,
+          "target_2_pct": "+9.0%",
+          "stop_loss": 54167,
+          "stop_loss_pct": "-3.0%",
+          "rule_v": 1,
+          "score": 83,
+          "reason": "20일선(55,766원) 눌림목 지지 · 이격도 0.1% 안정 구간",
+          "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
+          "tags": [
+            "20일선눌림목",
+            "추세우상향",
+            "안정적손익비"
+          ],
+          "chart_url": "https://m.stock.naver.com/domestic/stock/455890/total",
+          "highest_price": 55842,
+          "lowest_price": 55842,
+          "max_return_pct": 0.0,
+          "status": "진행중",
+          "completed": false,
+          "holding_days": 0
+        }
+      ],
+      "evaluated": false
     }
   ]
 }
