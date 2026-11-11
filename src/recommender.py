@@ -818,6 +818,11 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 reasons.append("DART 공시 호재 포착")
                 tags.append("실적/공시호재")
 
+            # AI 종합 점수 80점 미만인 어중간한 종목은 원천 배제 (조건 미달 시 무포지션 100% 현금 보존)
+            if score < 80.0:
+                logger.info(f"[종가베팅 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 80점")
+                continue
+
             closing_picks.append({
                 'code': code,
                 'name': name,
