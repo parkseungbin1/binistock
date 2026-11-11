@@ -77,7 +77,9 @@ class KalmanKellyFilter:
         """칼만 필터 상태를 종합하여 당일 권장 투입률 및 텔레메트리 산출"""
         rr = self.win_mag / max(self.loss_mag, 0.5)
         full_k = self.w_hat - ((1.0 - self.w_hat) / max(rr, 0.5))
-        half_k = max(0.05, full_k * 0.50)
+        rr = self.win_mag / max(self.loss_mag, 0.5)
+        full_k = self.w_hat - ((1.0 - self.w_hat) / max(rr, 0.5))
+        portfolio_k = max(0.25, full_k * 1.15)
 
         # 모멘텀 승수 계산
         if self.streak >= 3:
@@ -90,16 +92,16 @@ class KalmanKellyFilter:
             mom = 1.0
             mom_label = "⚖️ 정상 중립 모드"
 
-        unc_factor = max(0.75, 1.0 - math.sqrt(self.P_w))
+        unc_factor = max(0.85, 1.0 - math.sqrt(self.P_w))
 
-        if risk_score > 50:
+        if risk_score > 65:
             calibrated_pct = 0.0
             risk_label = f"🚨 AI 리스크 {risk_score}점 초과로 전면 매수 차단 (현금 100% 보존)"
             is_active = False
         else:
-            risk_factor = max(0.30, 1.0 - (risk_score / 100.0))
-            raw_calibrated = half_k * mom * unc_factor * risk_factor * 100.0
-            calibrated_pct = round(max(12.0, min(42.0, raw_calibrated)), 1)
+            risk_factor = max(0.45, 1.0 - (risk_score / 130.0))
+            raw_calibrated = portfolio_k * mom * unc_factor * risk_factor * 100.0
+            calibrated_pct = round(max(30.0, min(72.0, raw_calibrated)), 1)
             risk_label = f"✅ AI 리스크 {risk_score}점 정상 반영"
             is_active = True
 
