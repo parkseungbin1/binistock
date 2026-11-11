@@ -129,9 +129,14 @@ def generate_html():
         market_flow_html = '<div class="empty-card">시장 흐름 데이터를 불러오지 못했습니다.</div>'
 
     # 2-2. AI 실시간 복합 리스크 스코어 계산 (0~100)
+    breadth_val = rec_data.get('breadth_pct', 50.0) if isinstance(rec_data, dict) else 50.0
+    kp_pb = 0.0
+    kd_pb = 0.0
     try:
-        from src.risk_score import compute_risk_score, get_risk_assessment
+        from src.risk_score import compute_risk_score, get_risk_assessment, fetch_index_intraday_pullback
         vix_val = float(str(vix_close).replace(',', '')) if vix_close else 20.0
+        kp_pb = fetch_index_intraday_pullback("KOSPI")
+        kd_pb = fetch_index_intraday_pullback("KOSDAQ")
         risk_ctx = {
             'fut_ratio': fut_ratio if fut_ratio is not None else 0.0,
             'sox_ratio': sox_ratio if sox_ratio is not None else 0.0,
@@ -141,7 +146,9 @@ def generate_html():
             'kp_inst_num': kp_inst_num if kp_inst_num is not None else 0,
             'kd_for_num': kd_for_num if kd_for_num is not None else 0,
             'kd_inst_num': kd_inst_num if kd_inst_num is not None else 0,
-            'breadth_pct': rec_data.get('breadth_pct', 50.0) if isinstance(rec_data, dict) else 50.0,
+            'kp_pullback_pctp': kp_pb,
+            'kd_pullback_pctp': kd_pb,
+            'breadth_pct': breadth_val,
             'fx_ratio': fx_ratio if fx_ratio is not None else 0.0,
             'fx_close': fx_close if fx_close else 1350.0,
             'cnn_score': cnn_score if cnn_score is not None else 50.0,
@@ -153,7 +160,7 @@ def generate_html():
         risk_grade = assessment['grade']
         risk_color = assessment['color']
         risk_badge_class = assessment['badge_class']
-        risk_desc = assessment['desc']
+        risk_desc = f"{assessment['desc']} <span style='color:#93c5fd; font-weight:600;'>[v2.0 황금비율: 국내체력 53% : 글로벌 47% | 상승종목 {breadth_val:.1f}% · 지수윗꼬리 {kp_pb:.2f}%p]</span>"
     except Exception as e:
         print(f"리스크 스코어 계산 실패: {e}")
         ai_risk_score = 50
@@ -3031,7 +3038,7 @@ def generate_html():
             <div class="metric-main-row">
                 <div class="metric-value">{kp_display}</div>
             </div>
-            <div class="metric-sub">{kp_badge} | 외인 {kp_for}억</div>
+            <div class="metric-sub">{kp_badge} | 외인 {kp_for}억 · 기관 {kp_inst}억 (윗꼬리 {kp_pb:.2f}%p)</div>
             <div class="metric-desc">
                 <div class="metric-desc-title">💡 시장 영향 & 실전 의미</div>
                 <div class="metric-desc-text">{kp_impact_desc}</div>
@@ -3046,7 +3053,7 @@ def generate_html():
             <div class="metric-main-row">
                 <div class="metric-value">{kd_display}</div>
             </div>
-            <div class="metric-sub">{kd_badge} | 외인 {kd_for}억</div>
+            <div class="metric-sub">{kd_badge} | 외인 {kd_for}억 · 기관 {kd_inst}억 (상승종목 {breadth_val:.0f}%)</div>
             <div class="metric-desc">
                 <div class="metric-desc-title">💡 시장 영향 & 실전 의미</div>
                 <div class="metric-desc-text">{kd_impact_desc}</div>
