@@ -707,19 +707,19 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         pass
 
     closing_picks = []
-    # [옵션 B: 안정성+탄력 병행 종가베팅 주도주 선별]
-    # 1) 시가총액: 3,000억 이상 ~ 10조 원 이하 (호가창 무거운 10조 초과 초대형주 및 3,000억 미만 작전/잡주 원천 차단)
+    # [안정성+탄력 병행 종가베팅 주도주 선별]
+    # 1) 시가총액: 3,000억 이상 ~ 30조 원 이하 (30조 초과 초거대 지수주 및 3,000억 미만 작전/잡주 차단, 삼성SDS·삼성E&A 등 10~25조 대형 주도주 포용)
     # 2) 당일 거래대금: 최소 300억 이상 (주도 수급 집중 & 익일 시초가 슬리피지 방지)
     # 3) 당일 주가 상승률: +3.5% ~ +10.0% (건전한 고가 마감 양봉)
     closing_pool = common[
         (common['Marcap'] >= 3000 * 1e8) &      # 시총 3,000억 이상
-        (common['Marcap'] <= 100000 * 1e8) &    # 시총 10조 원 이하 (10조 초과 공룡주 배제)
+        (common['Marcap'] <= 300000 * 1e8) &    # 시총 30조 원 이하 (10~25조 S급 대형 주도주 포용, 30조 초과 초거대 지수주 배제)
         (common['Amount'] >= 300 * 1e8) &       # 당일 거래대금 최소 300억 이상 (주도주 수급 보장)
         (common['ChagesRatio'] >= 3.5) &        # 최소 +3.5% 이상
         (common['ChagesRatio'] <= 10.0)         # 최대 +10.0% 이하
     ].copy()
 
-    # 거래대금 상위 30개 종목 압축 (3,000억~10조 주도주 풀 전수 정밀 분석)
+    # 거래대금 상위 30개 종목 압축 (3,000억~30조 주도주 풀 전수 정밀 분석)
     closing_pool = closing_pool.sort_values(by='Amount', ascending=False).head(30)
 
     for _, row in closing_pool.iterrows():
@@ -848,14 +848,15 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     # =========================================================================
     swing_picks = []
     # 4대 엄격 기준:
-    # 1) 시총 3,000억 ~ 10조원 주도 유망주
+    # 1) 시총 3,000억 ~ 30조 원 주도 유망주
     # 2) 당일 거래대금 100억 이상 (소외주/잡주 원천 차단)
     # 3) 당일 양봉 필수 (ChagesRatio >= 0.0 & Close >= Open, 음봉 절대 매수 금지)
     # 4) 20일선 위 5% 이내 눌림목 지지 & 5일선-20일선 정배열
     # 5) AI 종합 점수 80점 이상 엄격 컷오프 (미달 시 추천 없음: 100% 현금 보존)
+    closing_picked_codes = {cp['code'] for cp in closing_picks}
     swing_pool = common[
         (common['Marcap'] >= 3000 * 1e8) &     # 시총 3,000억 이상
-        (common['Marcap'] <= 100000 * 1e8) &   # 시총 10조원 이하
+        (common['Marcap'] <= 300000 * 1e8) &   # 시총 30조 원 이하 (우량 대형 추세주 포용)
         (common['Amount'] >= 100 * 1e8) &      # 당일 거래대금 100억 이상 (주도력 확보)
         (common['ChagesRatio'] >= 0.0) &       # 음봉 배제 (0% 이상 보합/상승)
         (common['ChagesRatio'] <= 6.5) &       # 과열되지 않은 초입 양봉
@@ -867,6 +868,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
 
     for _, row in swing_pool.iterrows():
         code = str(row['Code'])
+        if code in closing_picked_codes:
+            continue
         name = str(row['Name'])
         market = str(row['Market'])
         close_p = float(row['Close'])
