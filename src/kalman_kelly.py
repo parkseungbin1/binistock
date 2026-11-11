@@ -79,7 +79,7 @@ class KalmanKellyFilter:
         full_k = self.w_hat - ((1.0 - self.w_hat) / max(rr, 0.5))
         rr = self.win_mag / max(self.loss_mag, 0.5)
         full_k = self.w_hat - ((1.0 - self.w_hat) / max(rr, 0.5))
-        portfolio_k = max(0.25, full_k * 1.15)
+        portfolio_k = max(0.45, full_k * 1.45)
 
         # 모멘텀 승수 계산
         if self.streak >= 3:
@@ -138,15 +138,19 @@ def load_trade_records() -> list[dict]:
                     for p in h.get('picks', []):
                         if 'gap_pct' in p:
                             gap = float(p['gap_pct'])
+                            is_win = bool(p.get('is_success', gap > 0))
+                            max_p = float(p.get('max_profit_pct', gap))
+                            ret_val = max(gap, max_p, 1.5) if is_win else min(gap, -0.5)
                             trades.append({
                                 'date': h.get('date', ''),
-                                'ret_pct': gap,
-                                'is_win': p.get('is_success', gap > 0),
+                                'ret_pct': ret_val,
+                                'is_win': is_win,
                                 'source': 'BETTING_RECORD'
                             })
         except Exception as e:
             logger.warning(f"종가베팅 트랙레코드 파싱 실패: {e}")
 
+    trades.sort(key=lambda x: x.get('date', ''))
     return trades
 
 
