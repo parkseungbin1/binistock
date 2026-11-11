@@ -663,6 +663,16 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     # =========================================================================
     # Track 1: 🎯 오늘 15:10 종가베팅 (오버나잇)
     # =========================================================================
+    # [시장 등락비율 Breadth 산출: 상승종목 / (상승+하락종목) 비율 %]
+    breadth_pct = 50.0
+    try:
+        adv_cnt = int((common['ChagesRatio'] > 0).sum())
+        dec_cnt = int((common['ChagesRatio'] < 0).sum())
+        if (adv_cnt + dec_cnt) > 0:
+            breadth_pct = round((adv_cnt / (adv_cnt + dec_cnt)) * 100.0, 1)
+    except Exception:
+        breadth_pct = 50.0
+
     # [아이디어 5] 오늘의 최강 주도 섹터 TOP 3 (Sector Sympathy) 집계
     hot_sectors = []
     hot_sector_names = []
@@ -1190,6 +1200,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         'breakout': breakout_picks,
         'pullback': pullback_picks,
         'hot_sectors': hot_sectors,
+        'breadth_pct': breadth_pct,
     }
     _RECOMMENDATIONS_CACHE = res
     return res
