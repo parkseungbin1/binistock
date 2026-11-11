@@ -770,6 +770,49 @@
         }
       ],
       "evaluated": false
+    },
+    {
+      "date": "2026-11-11",
+      "picks": [
+        {
+          "code": "003230",
+          "name": "삼양식품",
+          "market": "KOSPI",
+          "sector": "기타 식품",
+          "catalyst": "[특징주] 삼양식품, 원화 강세에 순이익 감소…5.5% 하락 마감(종합)",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/001/0016431667",
+          "catalyst_source": "연합뉴스",
+          "entry_price": 1202000,
+          "price": 1202000,
+          "change_pct": 1.26,
+          "amount_eok": 418,
+          "marcap": 9054684030000,
+          "marcap_str": "9조 547억",
+          "target_1": 1262100,
+          "target_1_pct": "+5.0%",
+          "target_2": 1310180,
+          "target_2_pct": "+9.0%",
+          "stop_loss": 1165940,
+          "stop_loss_pct": "-3.0%",
+          "rule_v": 1,
+          "score": 83,
+          "reason": "20일선(1,186,150원) 눌림목 지지 · 이격도 1.3% 안정 구간",
+          "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
+          "tags": [
+            "20일선눌림목",
+            "추세우상향",
+            "안정적손익비"
+          ],
+          "chart_url": "https://m.stock.naver.com/domestic/stock/003230/total",
+          "highest_price": 1202000,
+          "lowest_price": 1202000,
+          "max_return_pct": 0.0,
+          "status": "진행중",
+          "completed": false,
+          "holding_days": 0
+        }
+      ],
+      "evaluated": false
     }
   ]
 }
