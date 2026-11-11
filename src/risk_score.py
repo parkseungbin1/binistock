@@ -119,7 +119,6 @@ def compute_risk_score(context: dict) -> int:
     kd_risk = clamp(0.5 - (kd_ratio / 5.0)) * 8.0
 
     # 5. 장중 지수 윗꼬리(전강후약 투매 감지, 6점) & 시장 상승종목 비율 Breadth (6점) (합 12점 만점)
-    #    평시에도 기본 중립치(약 4점)를 유지하여 총점 저평가(점수 인플레이션)를 방지하고, 전강후약 시 급증
     kp_pullback = context.get('kp_pullback_pctp')
     kd_pullback = context.get('kd_pullback_pctp')
     if kp_pullback is None:
@@ -127,12 +126,12 @@ def compute_risk_score(context: dict) -> int:
     if kd_pullback is None:
         kd_pullback = fetch_index_intraday_pullback("KOSDAQ")
     avg_pullback = (float(kp_pullback) * 0.55) + (float(kd_pullback) * 0.45)
-    # 고점 대비 밀림 폭: 0%p일 때 기본 1.5점, 0.6%p일 때 3.0점, 1.6%p 이상 밀리면 6.0점 만점
-    intraday_tail_risk = clamp(0.25 + (avg_pullback / 2.0)) * 6.0
+    # 고점 대비 밀림 폭: 0%p(당일 최고가 마감)일 때 정직하게 0점, 평시 0.6%p 밀림 시 3.0점, 1.2%p 이상 밀리면 6.0점 만점
+    intraday_tail_risk = clamp(avg_pullback / 1.2) * 6.0
 
-    # 시장 상승종목 비율 (Breadth %: 80% 이상 초강세장 0점, 평시 55%일 때 2.5점, 30% 이하 착시장 6점 만점)
+    # 시장 상승종목 비율 (Breadth %: 75% 이상 강세장 0점, 반반(50%) 중립장 3.0점, 25% 이하 착시장 6.0점 만점)
     breadth_pct = float(context.get('breadth_pct', 50.0) or 50.0)
-    breadth_risk = clamp((80.0 - breadth_pct) / 50.0) * 6.0
+    breadth_risk = clamp((75.0 - breadth_pct) / 50.0) * 6.0
 
     # 6. 원/달러 환율 위험도 (8점 만점 = 등락 속도 6점 + 고환율 레벨 2점)
     fx_chg_risk = clamp(0.5 + (fx_ratio / 2.0)) * 6.0
