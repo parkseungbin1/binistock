@@ -169,7 +169,10 @@ def generate_html():
     kelly_win_rate = tuning_info.get('win_rate', 75.0)
     kelly_rr = tuning_info.get('rr_ratio', 2.15)
     kelly_base_pct = tuning_info.get('half_kelly_pct', 60.0)
-    recommended_invest_pct = int(round(max(15.0, min(80.0, kelly_base_pct * (1.0 - (ai_risk_score / 115.0))))))
+    if ai_risk_score > 65:
+        recommended_invest_pct = 0
+    else:
+        recommended_invest_pct = int(round(max(25.0, min(72.0, kelly_base_pct * (1.0 - (ai_risk_score / 115.0))))))
 
     # 칼만 필터(Kalman Filter) 기반 최근 승률 적응형 켈리 자기보정 적용
     try:
@@ -178,8 +181,10 @@ def generate_html():
         kalman_win_rate = kalman_res['filtered_win_rate']
         kalman_rr = kalman_res['filtered_rr_ratio']
         kalman_mom = kalman_res['momentum_label']
-        if ai_risk_score <= 50 and kalman_res.get('calibrated_pct', 0) > 0:
+        if ai_risk_score <= 65 and kalman_res.get('calibrated_pct', 0) > 0:
             recommended_invest_pct = int(round(kalman_res['calibrated_pct']))
+        elif ai_risk_score > 65:
+            recommended_invest_pct = 0
     except Exception as e:
         kalman_res = None
         kalman_win_rate = kelly_win_rate

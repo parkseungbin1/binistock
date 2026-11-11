@@ -79,11 +79,11 @@ class KalmanKellyFilter:
         full_k = self.w_hat - ((1.0 - self.w_hat) / max(rr, 0.5))
         rr = self.win_mag / max(self.loss_mag, 0.5)
         full_k = self.w_hat - ((1.0 - self.w_hat) / max(rr, 0.5))
-        portfolio_k = max(0.45, full_k * 1.45)
+        portfolio_k = max(0.35, min(0.72, full_k * 1.15))
 
         # 모멘텀 승수 계산
         if self.streak >= 3:
-            mom = min(1.18, 1.0 + (self.streak * 0.035))
+            mom = min(1.15, 1.0 + (self.streak * 0.03))
             mom_label = f"🔥 연승 모멘텀 가속 (+{int(round((mom - 1.0) * 100))}%)"
         elif self.streak <= -2:
             mom = max(0.65, 1.0 - (abs(self.streak) * 0.08))
@@ -99,10 +99,22 @@ class KalmanKellyFilter:
             risk_label = f"🚨 AI 리스크 {risk_score}점 초과로 전면 매수 차단 (현금 100% 보존)"
             is_active = False
         else:
-            risk_factor = max(0.45, 1.0 - (risk_score / 130.0))
+            if risk_score <= 30:
+                risk_factor = 1.0 - (risk_score / 300.0)
+                tier_desc = "🟢 저위험 적극베팅 구간"
+            elif risk_score <= 45:
+                risk_factor = 0.90 - ((risk_score - 30) / 15.0) * 0.15
+                tier_desc = "🟢 평시 표준베팅 구간"
+            elif risk_score <= 55:
+                risk_factor = 0.75 - ((risk_score - 45) / 10.0) * 0.17
+                tier_desc = "🟡 중위험 비중축소 구간"
+            else:
+                risk_factor = 0.58 - ((risk_score - 55) / 10.0) * 0.20
+                tier_desc = "🟠 고변동 보수적 소액 구간"
+
             raw_calibrated = portfolio_k * mom * unc_factor * risk_factor * 100.0
-            calibrated_pct = round(max(30.0, min(72.0, raw_calibrated)), 1)
-            risk_label = f"✅ AI 리스크 {risk_score}점 정상 반영"
+            calibrated_pct = round(max(25.0, min(72.0, raw_calibrated)), 1)
+            risk_label = f"✅ AI 리스크 {risk_score}점 반영 ({tier_desc})"
             is_active = True
 
         return {
