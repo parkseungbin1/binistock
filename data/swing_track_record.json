@@ -724,12 +724,12 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/003230/total",
-          "highest_price": 1189000,
+          "highest_price": 1244000,
           "lowest_price": 1189000,
-          "max_return_pct": 0.0,
-          "status": "진행중",
+          "max_return_pct": 4.63,
+          "status": "진행중 (1일차)",
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1
         },
         {
           "code": "455890",
@@ -761,12 +761,12 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/455890/total",
-          "highest_price": 55845,
-          "lowest_price": 55845,
-          "max_return_pct": 0.0,
-          "status": "진행중",
+          "highest_price": 55855,
+          "lowest_price": 55850,
+          "max_return_pct": 0.02,
+          "status": "진행중 (1일차)",
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1
         }
       ],
       "evaluated": false
