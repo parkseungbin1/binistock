@@ -103,15 +103,23 @@ def compute_risk_score(context: dict) -> int:
     # 2. 필라델피아 반도체 지수 위험도 (10점 만점 — 기준: -2.5% 이하 시 1.0, +2.5% 이상 시 0.0)
     sox_risk = clamp(0.5 - (sox_ratio / 5.0)) * 10.0
 
-    # 3. 국내 코스피·코스닥 외국인+기관 메이저 합산 수급 위험도 (15점 만점)
-    #    합산 +4,000억 이상 순매수 시 0.0 (최고 안전), -4,000억 이하 순매도 시 1.0 (최고 위험)
-    major_flow_risk = clamp(0.5 - (total_major_eok / 8000.0)) * 15.0
+    # 3. 국내 코스피·코스닥 외국인(70%)+기관(30%) 분리 수급 위험도 (15점 만점)
+    #    단순 합산 시 외인 매수와 기관 매도가 상쇄되는 착시를 막기 위해 외인(10.5점)과 기관(4.5점)을 분리 평가하고,
+    #    외인·기관 수급이 엇갈리는 날(혼조)에는 최소 중립 위험도를 유지하여 보수적으로 판정합니다.
+    for_total = kp_for + (kd_for * 1.5)   # 코스닥 외인 체감 가중
+    inst_total = kp_inst + (kd_inst * 1.5)
+    for_risk = clamp(0.5 - (for_total / 7000.0)) * 10.5
+    inst_risk = clamp(0.5 - (inst_total / 7000.0)) * 4.5
+    # 코스피 또는 코스닥에서 외인/기관 중 한쪽이라도 -1,000억 이상 매도 중이면 엇박자 경계 가산점(+2.0점)
+    conflict_penalty = 2.0 if (kp_for < -500 or kp_inst < -1000 or kd_for < -300 or kd_inst < -500) else 0.0
+    major_flow_risk = min(15.0, for_risk + inst_risk + conflict_penalty)
 
-    # 4. 코스피(10점) & 코스닥(8점) 지수 등락률 위험도 (18점 만점 — 기준: -2.0% 이하 시 1.0, +2.0% 이상 시 0.0)
-    kp_risk = clamp(0.5 - (kp_ratio / 4.0)) * 10.0
-    kd_risk = clamp(0.5 - (kd_ratio / 4.0)) * 8.0
+    # 4. 코스피(10점) & 코스닥(8점) 지수 등락률 위험도 (18점 만점 — 기준: -2.0% 이하 시 1.0, +2.5% 이상 시 0.0)
+    kp_risk = clamp(0.5 - (kp_ratio / 5.0)) * 10.0
+    kd_risk = clamp(0.5 - (kd_ratio / 5.0)) * 8.0
 
     # 5. 장중 지수 윗꼬리(전강후약 투매 감지, 6점) & 시장 상승종목 비율 Breadth (6점) (합 12점 만점)
+    #    평시에도 기본 중립치(약 4점)를 유지하여 총점 저평가(점수 인플레이션)를 방지하고, 전강후약 시 급증
     kp_pullback = context.get('kp_pullback_pctp')
     kd_pullback = context.get('kd_pullback_pctp')
     if kp_pullback is None:
@@ -119,12 +127,12 @@ def compute_risk_score(context: dict) -> int:
     if kd_pullback is None:
         kd_pullback = fetch_index_intraday_pullback("KOSDAQ")
     avg_pullback = (float(kp_pullback) * 0.55) + (float(kd_pullback) * 0.45)
-    # 고점 대비 밀림 폭이 0.2%p 이하면 0점(전약후강 고가마감), 1.8%p 이상 밀리면 6점 만점(전강후약 투매)
-    intraday_tail_risk = clamp((avg_pullback - 0.2) / 1.6) * 6.0
+    # 고점 대비 밀림 폭: 0%p일 때 기본 1.5점, 0.6%p일 때 3.0점, 1.6%p 이상 밀리면 6.0점 만점
+    intraday_tail_risk = clamp(0.25 + (avg_pullback / 2.0)) * 6.0
 
-    # 시장 상승종목 비율 (Breadth %: 기본 50%, 65% 이상이면 0점, 30% 이하면 6점 만점)
+    # 시장 상승종목 비율 (Breadth %: 80% 이상 초강세장 0점, 평시 55%일 때 2.5점, 30% 이하 착시장 6점 만점)
     breadth_pct = float(context.get('breadth_pct', 50.0) or 50.0)
-    breadth_risk = clamp((65.0 - breadth_pct) / 35.0) * 6.0
+    breadth_risk = clamp((80.0 - breadth_pct) / 50.0) * 6.0
 
     # 6. 원/달러 환율 위험도 (8점 만점 = 등락 속도 6점 + 고환율 레벨 2점)
     fx_chg_risk = clamp(0.5 + (fx_ratio / 2.0)) * 6.0
