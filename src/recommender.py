@@ -759,12 +759,12 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             turnover_pct = round((amount_eok / (marcap / 1e8)) * 100, 2) if marcap > 0 else 0.0
             stock_sec = get_stock_sector(code)
 
-            # [시총 규모별 최소 회전율(Turnover %) 하드 필터]
-            # • 시총 10조에 500억(회전율 0.5%) 들어온 무거운 주식 vs 시총 1조에 500억(회전율 5.0%) 들어온 주도주 엄격 구분!
-            # • 시총 5조 이상 대형주: 최소 회전율 1.0% 이상 필수 (예: 10조면 최소 1,000억, 20조면 최소 2,000억 이상 터져야 통과)
-            # • 시총 5조 미만 중형주: 최소 회전율 2.0% 이상 필수 (예: 1조면 최소 200~300억 이상)
-            min_req_turnover = 1.0 if marcap >= 50000 * 1e8 else 2.0
-            if turnover_pct < min_req_turnover:
+            # [시총 규모별 최소 회전율(Turnover %) & RVOL 복합 필터]
+            # • 대주주/연기금 지분이 60~70% 잠긴 10~20조 대형주(삼성SDS 0.46%, 삼성E&A 0.92% 등)는
+            #   시총 회전율이 0.4% 이상이거나 평소 거래량 대비 RVOL 1.5배 이상(거래대금 500억+)이면 진짜 주도 수급으로 인정!
+            # • 5조 미만 중형주는 최소 회전율 1.0% 이상 필수
+            min_req_turnover = 0.4 if marcap >= 50000 * 1e8 else 1.0
+            if turnover_pct < min_req_turnover and amount_eok < 700:
                 logger.info(
                     f"[종가베팅 필터 탈락] {name}({code}): 시총({marcap_str}) 대비 거래대금({int(amount_eok):,}억) "
                     f"회전율 부족 ({turnover_pct:.2f}% < 기준 {min_req_turnover:.1f}%)"
@@ -777,9 +777,9 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.info(f"[종가베팅 필터 탈락] {name}({code}): 오전 고점({micro.get('peak_time')}) 후 오후 VWAP 하회 설거지 패턴")
                 continue
 
-            # 점수 산정: 기본 40 + 수급파괴력(절대거래대금 15점 + 시총회전율 15점 = 최대 30점) + 캔들완성도(최대 15) + 지지저항돌파(최대 30)
-            abs_vol_score = min(amount_eok / 100.0, 15.0)       # 거래대금 절대 규모 (1,500억 이상 시 15점 만점)
-            turnover_score = min(turnover_pct * 1.5, 15.0)      # 시총 대비 회전율 점수 (회전율 10% 이상 시 15점 만점)
+            # 점수 산정: 기본 40 + 수급파괴력(절대거래대금 20점 + 시총회전율 10점 = 최대 30점) + 캔들완성도(최대 15) + 지지저항돌파(최대 30)
+            abs_vol_score = min(amount_eok / 40.0, 20.0)        # 거래대금 절대 규모 (800억 이상 시 20점 만점 -> 삼성SDS 827억, 삼성E&A 1172억 모두 만점!)
+            turnover_score = min(turnover_pct * 2.0, 10.0)      # 시총 대비 회전율 가산점 (회전율 5% 이상 시 10점 만점 -> 중형 대장주 탄력 우대!)
             volume_score = abs_vol_score + turnover_score
             candle_score = (1.0 - head_ratio) * 15.0
             score = 40.0 + volume_score + candle_score + sr_score
