@@ -244,8 +244,13 @@ def generate_html():
         change_val = pick.get('change_pct', 0)
         amount_eok = pick.get('amount_eok', 0)
         marcap_str = pick.get('marcap_str', '')
-        marcap_badge = f'<span class="rec-marcap-badge">시총 {marcap_str}</span>' if marcap_str else ''
-        amount_str = f" (거래대금 {amount_eok:,}억)" if amount_eok else ""
+        marcap_val = pick.get('marcap', 0)
+        turnover_pct = pick.get('turnover_pct')
+        if not turnover_pct and amount_eok and marcap_val and marcap_val > 0:
+            turnover_pct = round((float(amount_eok) / (float(marcap_val) / 1e8)) * 100, 2)
+        turnover_str = f" · 회전율 {turnover_pct:.2f}%" if turnover_pct else ""
+        marcap_badge = f'<span class="rec-marcap-badge">시총 {marcap_str}{turnover_str}</span>' if marcap_str else ''
+        amount_str = f" (거래대금 {amount_eok:,}억{turnover_str})" if amount_eok else ""
 
         t1 = pick.get('target_1') or (int(round(price * 1.03)) if price else 0)
         t1_pct = pick.get('target_1_pct', '+3.0%')
