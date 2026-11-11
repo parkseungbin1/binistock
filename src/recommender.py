@@ -1142,8 +1142,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     except Exception as e:
         logger.debug(f"기준봉 눌림목 스캔 예외: {e}")
 
-    # 스윙 추천주 1~3등(TOP 3)이 대시보드와 텔레그램에 항상 일관되게 표시되도록
-    # 20일선 스윙(swing_picks)이 3개 미만일 경우 기준봉 눌림목 스윙(pullback_picks)에서 보충 후 AI 점수순 정렬
+    # 스윙 추천주 1~3등(TOP 3)이 대시보드와 텔레그램에 항상 일관되게 표시되도록 보충 및 AI 점수순 정렬
     if len(swing_picks) < 3 and pullback_picks:
         existing_sw_codes = {s['code'] for s in swing_picks}
         for pb in pullback_picks:
