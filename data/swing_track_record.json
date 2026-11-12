@@ -724,13 +724,14 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/003230/total",
-          "highest_price": 1282000,
-          "lowest_price": 1189000,
-          "max_return_pct": 7.82,
-          "status": "1차 분할 달성",
-          "completed": false,
-          "holding_days": 1,
-          "is_success": true
+          "highest_price": 1298000,
+          "lowest_price": 1163000,
+          "max_return_pct": 9.17,
+          "status": "2차 전량 달성",
+          "completed": true,
+          "holding_days": 2,
+          "is_success": true,
+          "final_return_pct": 9.17
         },
         {
           "code": "455890",
@@ -762,12 +763,12 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/455890/total",
-          "highest_price": 55855,
+          "highest_price": 55870,
           "lowest_price": 55850,
-          "max_return_pct": 0.02,
-          "status": "진행중 (1일차)",
+          "max_return_pct": 0.04,
+          "status": "진행중 (2일차)",
           "completed": false,
-          "holding_days": 1
+          "holding_days": 2
         }
       ],
       "evaluated": false
@@ -805,15 +806,17 @@
             "5일선지지"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/009830/total",
-          "highest_price": 25450,
-          "lowest_price": 25450,
-          "max_return_pct": 0.0,
-          "status": "진행중",
-          "completed": false,
-          "holding_days": 0
+          "highest_price": 25250,
+          "lowest_price": 23750,
+          "max_return_pct": -0.79,
+          "status": "손절 이탈",
+          "completed": true,
+          "holding_days": 1,
+          "is_success": false,
+          "final_return_pct": -3.0
         }
       ],
-      "evaluated": false
+      "evaluated": true
     }
   ]
 }
