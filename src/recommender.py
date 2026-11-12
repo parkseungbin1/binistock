@@ -236,24 +236,30 @@ def fetch_naver_realtime_pool():
     }
 
     items = []
-    # 코스피 200개 + 코스닥 200개 = 총 400개 우량주 스캔
+    seen_codes = set()
+    # 코스피/코스닥 시총 상위 200개 + 당일 상승률/수급 상위 100개 병합 스캔 (시총 200위 밖 3,000~5,500억 알짜 주도주 누락 방지)
     for mkt in ['KOSPI', 'KOSDAQ']:
-        for page in [1, 2]:
-            url = f'https://m.stock.naver.com/api/stocks/marketValue/{mkt}?page={page}&pageSize=100'
+        pool_urls = [
+            f'https://m.stock.naver.com/api/stocks/marketValue/{mkt}?page=1&pageSize=100',
+            f'https://m.stock.naver.com/api/stocks/marketValue/{mkt}?page=2&pageSize=100',
+            f'https://m.stock.naver.com/api/stocks/up/{mkt}?page=1&pageSize=100',
+        ]
+        for url in pool_urls:
             try:
                 r = requests.get(url, headers=headers, timeout=4)
                 if r.status_code == 200:
                     stocks = r.json().get('stocks', [])
                     for s in stocks:
-                        code = s.get('itemCode')
+                        code = str(s.get('itemCode') or '').strip()
                         name = s.get('stockName')
                         close_p = s.get('closePriceRaw')
                         chg_pct = s.get('fluctuationsRatio')
                         amt_raw = s.get('accumulatedTradingValueRaw', 0)
                         mc_raw = s.get('marketValueRaw', 0)
-                        if code and close_p:
+                        if code and close_p and code not in seen_codes:
+                            seen_codes.add(code)
                             items.append({
-                                'Code': str(code),
+                                'Code': code,
                                 'Name': str(name),
                                 'Market': mkt,
                                 'Close': float(close_p),
@@ -265,7 +271,7 @@ def fetch_naver_realtime_pool():
                                 'Marcap': float(mc_raw) if mc_raw else 0.0
                             })
             except Exception as e:
-                logger.debug(f"네이버 실시간 시세 {mkt} p{page} 수집 예외: {e}")
+                logger.debug(f"네이버 실시간 시세 {mkt} 수집 예외: {e}")
 
     if not items:
         return None
@@ -548,9 +554,11 @@ def analyze_support_resistance(code: str, name: str) -> dict:
         avg_20_vol = sum(r['volume'] for r in past_20) / max(len(past_20), 1)
         rvol = round(today['volume'] / avg_20_vol, 2) if avg_20_vol > 0 else 1.0
 
-        # 20일선 및 60일선 이동평균
+        # 5일선·20일선·60일선 이동평균 및 5일선 이격도
+        ma5 = sum(r['close'] for r in rows[-5:]) / 5.0
         ma20 = sum(r['close'] for r in rows[-20:]) / 20.0
         ma60 = sum(r['close'] for r in rows[-60:]) / len(rows[-60:]) if len(rows) >= 60 else None
+        disp5_pct = round(((today_close - ma5) / ma5) * 100.0, 2) if ma5 > 0 else 0.0
 
         # 1. 역배열 하향 추세 (20일선 밑에 주가가 위치) -> 탈락
         if today_close < ma20:
@@ -609,11 +617,102 @@ def analyze_support_resistance(code: str, name: str) -> dict:
             'room_pct': room_pct,
             'sr_score': sr_score,
             'rvol': rvol,
+            'ma5': ma5,
+            'disp5_pct': disp5_pct,
             'tags': tags
         }
     except Exception as e:
         logger.debug(f"{code} 지지저항 분석 실패: {e}")
         return None
+
+
+def _parse_signed_int(val) -> int:
+    try:
+        return int(str(val or '0').replace(',', '').replace('+', '').strip())
+    except Exception:
+        return 0
+
+
+def fetch_stock_major_flow(code: str) -> dict:
+    """
+    종목별 최근 3영업일 외국인·기관 순매수 수급 및 희석/리스크 악재 공시 여부를 조회합니다.
+    GitHub Actions 등 키움 API 키가 없는 환경에서도 동작하도록 네이버 모바일 API를 사용합니다.
+    """
+    import requests
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    out = {
+        'foreign_3d': 0,
+        'organ_3d': 0,
+        'foreign_latest': 0,
+        'organ_latest': 0,
+        'is_dual_buy': False,
+        'is_organ_accum': False,
+        'is_major_dump': False,
+        'toxic_disclosure': None,
+    }
+    try:
+        r = requests.get(f'https://m.stock.naver.com/api/stock/{code}/integration', headers=headers, timeout=2.5)
+        if r.status_code == 200:
+            infos = (r.json() or {}).get('dealTrendInfos', [])[:3]
+            if infos:
+                out['foreign_latest'] = _parse_signed_int(infos[0].get('foreignerPureBuyQuant'))
+                out['organ_latest'] = _parse_signed_int(infos[0].get('organPureBuyQuant'))
+                out['foreign_3d'] = sum(_parse_signed_int(x.get('foreignerPureBuyQuant')) for x in infos)
+                out['organ_3d'] = sum(_parse_signed_int(x.get('organPureBuyQuant')) for x in infos)
+                out['is_dual_buy'] = (
+                    (out['foreign_3d'] > 0 and out['organ_3d'] > 0)
+                    or (out['foreign_latest'] > 0 and out['organ_latest'] > 0)
+                )
+                out['is_organ_accum'] = (not out['is_dual_buy']) and (out['organ_3d'] > 0 and out['organ_latest'] > 0)
+                out['is_major_dump'] = (out['foreign_3d'] < 0 and out['organ_3d'] < 0 and out['organ_latest'] < 0)
+    except Exception as e:
+        logger.debug(f"{code} 외인/기관 수급 조회 예외: {e}")
+
+    try:
+        r_disc = requests.get(f'https://m.stock.naver.com/api/stock/{code}/disclosure?pageSize=5&page=1', headers=headers, timeout=2.0)
+        if r_disc.status_code == 200:
+            discs = r_disc.json() or []
+            toxic_keywords = ['유상증자', '전환사채', '신주인수권부사채', '감자결정', '불성실공시', '거래정지', '횡령', '배임']
+            today_compact = datetime.now(KST).strftime('%Y%m%d')
+            yesterday_compact = (datetime.now(KST) - timedelta(days=1)).strftime('%Y%m%d')
+            for d in discs:
+                title = str(d.get('title', ''))
+                dt_str = re.sub(r'[^0-9]', '', str(d.get('date', '') or d.get('regDt', '')))[:8]
+                is_recent = (not dt_str) or (dt_str in (today_compact, yesterday_compact))
+                if is_recent and any(tk in title for tk in toxic_keywords):
+                    out['toxic_disclosure'] = title[:60]
+                    break
+    except Exception as e:
+        logger.debug(f"{code} 악재 공시 점검 예외: {e}")
+
+    return out
+
+
+def _resolve_ai_risk_score(market_context=None) -> int:
+    """market_context에 ai_risk_score가 있으면 사용하고, 없으면 실시간 리스크를 보수적으로 산출합니다."""
+    if market_context and market_context.get('ai_risk_score') is not None:
+        return int(market_context['ai_risk_score'])
+    try:
+        from src.risk_score import compute_risk_score
+        from src.market_score import fetch_kr_market, fetch_nasdaq_futures, fetch_cnn_fear_greed, fetch_vix
+        _, fut_r = fetch_nasdaq_futures()
+        _, kp_r, _, _, kp_fn, kp_in = fetch_kr_market('KOSPI')
+        _, kd_r, _, _, kd_fn, kd_in = fetch_kr_market('KOSDAQ')
+        cnn_s, _ = fetch_cnn_fear_greed()
+        vix_v, _ = fetch_vix()
+        return int(compute_risk_score({
+            'fut_ratio': fut_r if fut_r is not None else 0.0,
+            'kp_ratio': kp_r if kp_r is not None else 0.0,
+            'kd_ratio': kd_r if kd_r is not None else 0.0,
+            'kp_for_num': kp_fn or 0,
+            'kp_inst_num': kp_in or 0,
+            'kd_for_num': kd_fn or 0,
+            'kd_inst_num': kd_in or 0,
+            'cnn_score': cnn_s if cnn_s is not None else 50.0,
+            'vix': float(str(vix_v).replace(',', '')) if vix_v else 20.0,
+        }))
+    except Exception:
+        return 50
 
 
 _RECOMMENDATIONS_CACHE = None
@@ -673,9 +772,10 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     except Exception:
         breadth_pct = 50.0
 
-    # [아이디어 5] 오늘의 최강 주도 섹터 TOP 3 (Sector Sympathy) 집계
+    # [아이디어 5] 오늘의 최강 주도 섹터 TOP 3 및 섹터별 1등 대장주 집계
     hot_sectors = []
     hot_sector_names = []
+    hot_leader_codes = set()
     try:
         surge_pool = common[
             (common['Amount'] >= 50 * 1e8) &
@@ -688,20 +788,29 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             samt = float(srow['Amount']) / 1e8
             schg = float(srow['ChagesRatio'])
             ssec = get_stock_sector(scode)
+            leader_rank = (schg * 0.6) + min(samt / 200.0, 15.0)
             if ssec not in sec_agg:
-                sec_agg[ssec] = {'sector': ssec, 'count': 0, 'total_amount_eok': 0, 'chg_sum': 0.0, 'leader_name': sname, 'leader_chg': schg}
+                sec_agg[ssec] = {
+                    'sector': ssec, 'count': 0, 'total_amount_eok': 0,
+                    'chg_sum': 0.0, 'leader_name': sname, 'leader_code': scode,
+                    'leader_chg': schg, '_leader_rank': leader_rank,
+                }
             sec_agg[ssec]['count'] += 1
             sec_agg[ssec]['total_amount_eok'] += int(samt)
             sec_agg[ssec]['chg_sum'] += schg
-            if schg > sec_agg[ssec]['leader_chg']:
+            if samt >= 300 and leader_rank > sec_agg[ssec]['_leader_rank']:
                 sec_agg[ssec]['leader_name'] = sname
+                sec_agg[ssec]['leader_code'] = scode
                 sec_agg[ssec]['leader_chg'] = round(schg, 2)
+                sec_agg[ssec]['_leader_rank'] = leader_rank
         for k, v in sec_agg.items():
             v['avg_chg'] = round(v['chg_sum'] / max(v['count'], 1), 2)
+            v.pop('_leader_rank', None)
             hot_sectors.append(v)
         hot_sectors.sort(key=lambda x: (x['count'], x['total_amount_eok']), reverse=True)
         hot_sectors = hot_sectors[:3]
         hot_sector_names = [h['sector'] for h in hot_sectors[:2]]
+        hot_leader_codes = {h['leader_code'] for h in hot_sectors[:2] if h.get('leader_code')}
     except Exception as e:
         logger.debug(f"주도 섹터 집계 예외: {e}")
 
@@ -716,17 +825,21 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     except Exception:
         pass
 
+    risk_val = _resolve_ai_risk_score(market_context)
+    is_low_risk_market = (risk_val <= 45)
+    max_chg_cap = 15.0 if is_low_risk_market else 10.0
+
     closing_picks = []
     # [안정성+탄력 병행 종가베팅 주도주 선별]
-    # 1) 시가총액: 3,000억 이상 ~ 30조 원 이하 (30조 초과 초거대 지수주 및 3,000억 미만 작전/잡주 차단, 삼성SDS·삼성E&A 등 10~25조 대형 주도주 포용)
-    # 2) 당일 거래대금: 최소 300억 이상 (주도 수급 집중 & 익일 시초가 슬리피지 방지)
-    # 3) 당일 주가 상승률: +3.5% ~ +10.0% (건전한 고가 마감 양봉)
+    # 1) 시가총액: 3,000억 이상 ~ 30조 원 이하 (초대형 지수주·잡주 배제)
+    # 2) 당일 거래대금: 최소 300억 이상 (10% 초과 S급 기준봉 예외 시 500억+ 필수)
+    # 3) 당일 주가 상승률: 기본 +3.5% ~ +10.0%, 단 AI 리스크 45점 이하일 때만 +15.0%까지 S급 첫출발 기준봉 조건부 허용
     closing_pool = common[
         (common['Marcap'] >= 3000 * 1e8) &      # 시총 3,000억 이상
         (common['Marcap'] <= 300000 * 1e8) &    # 시총 30조 원 이하 (10~25조 S급 대형 주도주 포용, 30조 초과 초거대 지수주 배제)
         (common['Amount'] >= 300 * 1e8) &       # 당일 거래대금 최소 300억 이상 (주도주 수급 보장)
         (common['ChagesRatio'] >= 3.5) &        # 최소 +3.5% 이상
-        (common['ChagesRatio'] <= 10.0)         # 최대 +10.0% 이하
+        (common['ChagesRatio'] <= max_chg_cap)  # +10% (AI 리스크 <= 45일 때 최대 +15% 조건부 허용)
     ].copy()
 
     # 거래대금 상위 30개 종목 압축 (3,000억~30조 주도주 풀 전수 정밀 분석)
@@ -751,6 +864,18 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         head_ratio = (high_p - close_p) / (high_p - low_p)
         body_ratio = (close_p - open_p) / (high_p - low_p)
 
+        # +10.0% ~ +15.0% 구간은 5중 안전 게이트 충족 S급 기준봉에만 조건부 허용 (대금 500억↑ · 꼬리 25%↓ · 몸통 55%↑)
+        if change_pct > 10.0:
+            if not is_low_risk_market:
+                logger.info(f"[종가베팅 과열 차단] {name}({code}): +{change_pct:.1f}% (리스크 {risk_val}점 > 45점 보수 상한 +10%)")
+                continue
+            if amount_eok < 500 or head_ratio > 0.25 or body_ratio < 0.55:
+                logger.info(
+                    f"[종가베팅 S급 기준봉 미달] {name}({code}): +{change_pct:.1f}% "
+                    f"(대금 {int(amount_eok)}억/500억, 윗꼬리 {int(head_ratio*100)}%/25%, 몸통 {int(body_ratio*100)}%/55%)"
+                )
+                continue
+
         # 윗꼬리 38% 이하 & 양봉 몸통 35% 이상 엄격 필터링
         if head_ratio <= 0.38 and body_ratio >= 0.35:
             # [지지·저항 돌파 & 머리 위 저항 충돌 필터]
@@ -766,8 +891,14 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             room_pct = sr.get('room_pct', 5.0) if sr else 5.0
             sr_tags = sr.get('tags', []) if sr else []
             rvol = sr.get('rvol', 1.5) if sr else 1.5
+            disp5_pct = sr.get('disp5_pct', 0.0) if sr else 99.0
             turnover_pct = round((amount_eok / (marcap / 1e8)) * 100, 2) if marcap > 0 else 0.0
             stock_sec = get_stock_sector(code)
+
+            # +10% ~ +15% 구간은 5일선 이격도 +10.0% 이하 첫 출발 기준봉만 허용 (연속 급등 상투 차단)
+            if change_pct > 10.0 and disp5_pct > 10.0:
+                logger.info(f"[종가베팅 연속급등 상투 차단] {name}({code}): +{change_pct:.1f}% 5일선 이격 +{disp5_pct:.1f}% > +10.0% 초과")
+                continue
 
             # [시총 규모별 최소 회전율(Turnover %) & RVOL 복합 필터]
             # • 대주주/연기금 지분이 60~70% 잠긴 10~20조 대형주(삼성SDS 0.46%, 삼성E&A 0.92% 등)는
@@ -785,6 +916,17 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             micro = analyze_intraday_microstructure(code, close_p)
             if micro and micro.get('is_morning_dump'):
                 logger.info(f"[종가베팅 필터 탈락] {name}({code}): 오전 고점({micro.get('peak_time')}) 후 오후 VWAP 하회 설거지 패턴")
+                continue
+            if change_pct > 10.0:
+                vwap_diff_now = micro.get('vwap_diff_pct', -1.0) if micro else -1.0
+                if vwap_diff_now <= 0.0:
+                    logger.info(f"[종가베팅 VWAP 미달 차단] {name}({code}): +{change_pct:.1f}% 당일 VWAP 하회({vwap_diff_now:+.2f}%)")
+                    continue
+
+            # [S급 수급·악재공시 검증] 외인/기관 3일 누적 수급 및 희석 공시 필터
+            major_flow = fetch_stock_major_flow(code)
+            if major_flow.get('toxic_disclosure'):
+                logger.warning(f"[종가베팅 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
                 continue
 
             # 점수 산정: 기본 40 + 수급파괴력(절대거래대금 20점 + 시총회전율 10점 = 최대 30점) + 캔들완성도(최대 15) + 지지저항돌파(최대 30)
@@ -817,17 +959,38 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             if stock_sec in hot_sector_names:
                 score += 5.0
                 reasons.append(f"🔥당일 주도섹터({stock_sec}) 동조화")
+            if code in hot_leader_codes:
+                score += 4.0
+                reasons.append(f"👑주도섹터({stock_sec}) 1등 대장주")
             if stock_sec in winning_sectors:
                 score += 4.0
                 reasons.append(f"🧠30일 고승률 섹터 자가보정(+4점)")
 
             tags = ['거래대금폭발', '단단한양봉', '익일시초가노림'] + sr_tags
+            if code in hot_leader_codes:
+                tags.append("섹터1등대장")
+            if change_pct > 10.0:
+                reasons.append(f"🔥S급 첫출발 기준봉(5일선이격 +{disp5_pct:.1f}%)")
+                tags.append("S급기준봉")
+
+            if major_flow.get('is_dual_buy'):
+                score += 6.0
+                reasons.append("🏦외인·기관 쌍끌이 수급 유입(+6점)")
+                tags.append("쌍끌이수급")
+            elif major_flow.get('is_organ_accum'):
+                score += 3.0
+                reasons.append("🏦기관 연속 순매수 매집(+3점)")
+                tags.append("기관매집")
+            elif major_flow.get('is_major_dump'):
+                score -= 5.0
+                reasons.append("⚠️최근 3일 외인·기관 동시 순매도(-5점)")
 
             if code in catalyst_codes:
                 score += 10.0
                 reasons.append("DART 공시 호재 포착")
                 tags.append("실적/공시호재")
 
+            score = max(0.0, score)
             # AI 종합 점수 80점 미만인 어중간한 종목은 원천 배제 (조건 미달 시 무포지션 100% 현금 보존)
             if score < 80.0:
                 logger.info(f"[종가베팅 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 80점")
