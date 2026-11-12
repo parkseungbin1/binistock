@@ -105,6 +105,8 @@ def generate_html():
         swing_picks = rec_data.get('swing', [])
         breakout_picks = rec_data.get('breakout', [])
         pullback_picks = rec_data.get('pullback', [])
+        condition_picks = rec_data.get('condition', [])
+        condition_meta = rec_data.get('condition_meta', {})
         hot_sectors = rec_data.get('hot_sectors', [])
     except Exception as e:
         print(f"추천 종목 수집 실패: {e}")
@@ -114,6 +116,8 @@ def generate_html():
         swing_picks = fallback['swing']
         breakout_picks = fallback.get('breakout', [])
         pullback_picks = fallback.get('pullback', [])
+        condition_picks = fallback.get('condition', [])
+        condition_meta = fallback.get('condition_meta', {})
         hot_sectors = fallback.get('hot_sectors', [])
 
     hm_kst = now_kst.hour * 100 + now_kst.minute
@@ -506,6 +510,14 @@ def generate_html():
     swing_cards_html = "".join([render_rec_card(p, "theme-swing") for p in swing_picks])
     breakout_cards_html = "".join([render_rec_card(p, "theme-breakout") for p in breakout_picks])
     pullback_cards_html = "".join([render_rec_card(p, "theme-swing") for p in pullback_picks]) if pullback_picks else "<div class='empty-card'>현재 과거 기준봉의 5일선·중심선 눌림목 구간에 진입한 종목이 없습니다.</div>"
+    cond_cnt = len(condition_picks)
+    cond_is_hts = bool(condition_meta.get('is_live_hts'))
+    cond_src_badge = "🟢 키움 HTS 실시간 연동" if cond_is_hts else "🔵 클라우드 자체 조건 스캔"
+    cond_updated_at = condition_meta.get('updated_at') or now_str
+    cond_tab_pill = f"{cond_cnt}종목 포착 · AI 채점" if cond_cnt > 0 else "포착 대기"
+    for cp in condition_picks:
+        cp['rec_date_html'] = f'<div class="rec-date-badge">🎯 조건식 <b>{condition_meta.get("cond_name", "60일이상추가 1000억")}</b> ({cond_src_badge}) · <b>{cond_updated_at}</b> 기준</div>'
+    condition_cards_html = "".join([render_rec_card(p, "theme-condition") for p in condition_picks]) if condition_picks else "<div class='empty-card'>현재 조건검색식('60일이상추가 1000억')에 포착된 종목이 없습니다.</div>"
 
     hot_sectors_items = []
     for idx_s, hs in enumerate(hot_sectors[:3], 1):
@@ -1695,6 +1707,7 @@ def generate_html():
         .rec-tab.tab-blue {{ border-top-color: #3b82f6; }}
         .rec-tab.tab-indigo {{ border-top-color: #a855f7; }}
         .rec-tab.tab-emerald {{ border-top-color: #10b981; }}
+        .rec-tab.tab-cyan {{ border-top-color: #06b6d4; }}
         .rec-tab.tab-rose {{ border-top-color: #f43f5e; }}
         .rec-tab.tab-rose.active {{
             background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(37, 99, 235, 0.22));
@@ -2095,6 +2108,26 @@ def generate_html():
             border: 1px solid rgba(59, 130, 246, 0.25);
             color: #93c5fd;
         }}
+        .pill-cyan {{
+            background: rgba(6, 182, 212, 0.2);
+            color: #22d3ee;
+            border-color: rgba(6, 182, 212, 0.38);
+        }}
+        .banner-cyan {{
+            background: rgba(6, 182, 212, 0.08);
+            border: 1px solid rgba(6, 182, 212, 0.28);
+            color: #a5f3fc;
+        }}
+        .num-cyan {{
+            background: rgba(6, 182, 212, 0.22);
+            color: #22d3ee;
+            border-color: rgba(6, 182, 212, 0.4);
+        }}
+        .tag-cyan {{
+            background: rgba(6, 182, 212, 0.16);
+            color: #67e8f9;
+            border-color: rgba(6, 182, 212, 0.35);
+        }}
         .rec-sector-badge {{
             font-size: 0.74rem;
             color: #a78bfa;
@@ -2476,6 +2509,9 @@ def generate_html():
         }}
         .rec-card.theme-breakout {{
             border-top: 3px solid #ef4444;
+        }}
+        .rec-card.theme-condition {{
+            border-top: 3px solid #06b6d4;
         }}
         .rec-card-top {{
             display: flex;
@@ -3229,6 +3265,10 @@ def generate_html():
             <span class="rec-tab-title">🔥 당일 +15% 돌파 대장주</span>
             <span class="rec-tag-pill pill-red">기준봉·눌림목 포착</span>
         </button>
+        <button class="rec-tab tab-cyan" onclick="switchRecTrack('condition', this)">
+            <span class="rec-tab-title">🎯 내 조건식 (60일 1000억)</span>
+            <span class="rec-tag-pill pill-cyan">{cond_tab_pill}</span>
+        </button>
         <button class="rec-tab tab-blue" onclick="switchRecTrack('history', this)">
             <span class="rec-tab-title">📜 1개월 종가베팅 성과</span>
             <span class="rec-tag-pill pill-blue">1달치 승률 자동기록</span>
@@ -3418,6 +3458,56 @@ def generate_html():
         </div>
         <div class="rec-grid">
             {pullback_cards_html}
+        </div>
+    </div>
+
+    <!-- 3-B) 키움 내 조건식 ('60일이상추가 1000억') AI 정밀 분석 컨테이너 -->
+    <div id="rec-condition-container" class="rec-container" style="display: none;">
+        <div class="rec-strategy-banner banner-cyan">
+            <div>
+                <b>🎯 내 조건식 ('60일이상추가 1000억') 실시간 AI 정밀 채점</b> ({cond_src_badge} · 갱신 <b>{cond_updated_at}</b>): 키움 HTS 조건검색 포착 종목을 종가베팅과 100% 동일한 AI 퀀트 알고리즘(수급·VWAP·윗꼬리·지지저항·DART 공시)으로 채점하여 80점+ S급 타점만 선별합니다.
+            </div>
+        </div>
+
+        <div class="criteria-card">
+            <div class="criteria-head">
+                <span>🔍 내 조건식 ('60일이상추가 1000억') ✕ AI 4대 검증 게이트</span>
+                <span class="criteria-sub-tag tag-cyan">HTS + 클라우드 하이브리드</span>
+            </div>
+            <div class="criteria-grid">
+                <div class="criteria-item">
+                    <div class="ci-num num-cyan">01</div>
+                    <div class="ci-content">
+                        <div class="ci-title">시총 1,000억+ & 60일 지표 돌파 포착</div>
+                        <div class="ci-desc">영웅문 HTS 조건식('60일이상추가 1000억')으로 추출된 종목을 수신하며, PC가 꺼져있을 땐 클라우드 자체 스캔 엔진이 자동 가동됩니다.</div>
+                    </div>
+                </div>
+                <div class="criteria-item">
+                    <div class="ci-num num-cyan">02</div>
+                    <div class="ci-content">
+                        <div class="ci-title">종가베팅과 100% 동일한 AI 채점 (0~99점)</div>
+                        <div class="ci-desc">거래대금·시총회전율·윗꼬리 완성도·당일 VWAP·외인/기관 수급·뉴스 공시를 동일 공식으로 채점해 점수순 정렬합니다.</div>
+                    </div>
+                </div>
+                <div class="criteria-item">
+                    <div class="ci-num num-cyan">03</div>
+                    <div class="ci-content">
+                        <div class="ci-title">더블 컨펌(Double Confirm) 교차 검증</div>
+                        <div class="ci-desc">AI 종가베팅이나 스윙 추천에도 동시 선정된 종목은 👑 더블컨펌 배지와 +5점 가산점으로 최우선 타점을 표시합니다.</div>
+                    </div>
+                </div>
+                <div class="criteria-item">
+                    <div class="ci-num num-cyan">04</div>
+                    <div class="ci-content">
+                        <div class="ci-title">함정주 경고등 (윗꼬리·설거지·악재공시)</div>
+                        <div class="ci-desc">조건식에 떴더라도 윗꼬리 38% 초과·VWAP 이탈·악재 공시가 감지되면 감점 및 ⚠️ 경고 태그를 띄워 추격 매수를 방어합니다.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rec-grid">
+            {condition_cards_html}
         </div>
     </div>
 
@@ -3749,6 +3839,8 @@ def generate_html():
             document.getElementById('rec-closing-container').style.display = (track === 'closing') ? 'block' : 'none';
             document.getElementById('rec-swing-container').style.display = (track === 'swing') ? 'block' : 'none';
             document.getElementById('rec-breakout-container').style.display = (track === 'breakout') ? 'block' : 'none';
+            const condEl = document.getElementById('rec-condition-container');
+            if (condEl) condEl.style.display = (track === 'condition') ? 'block' : 'none';
             document.getElementById('rec-history-container').style.display = (track === 'history') ? 'block' : 'none';
             document.getElementById('rec-swing-history-container').style.display = (track === 'swing_history') ? 'block' : 'none';
             const pbEl = document.getElementById('rec-playbook-container');

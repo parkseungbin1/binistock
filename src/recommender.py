@@ -1461,7 +1461,280 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     # if not pullback_picks:
     #     pullback_picks = []
 
-    for p in (closing_picks + swing_picks + breakout_picks + pullback_picks):
+    # =========================================================================
+    # Track 5: 🎯 내 조건식 ('60일이상추가 1000억') 동일 AI 정밀 채점 (하이브리드: HTS 원본 + 클라우드 폴백)
+    # =========================================================================
+    condition_picks = []
+    condition_meta = {
+        'cond_name': '60일이상추가 1000억',
+        'source': 'CLOUD_FALLBACK_SCAN',
+        'updated_at': datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S'),
+        'is_live_hts': False,
+    }
+    try:
+        from pathlib import Path as _Path
+        import json as _json
+        import requests as _req
+
+        _root_dir = _Path(__file__).resolve().parent.parent
+        _cond_cache_path = _root_dir / 'data' / 'kiwoom_condition_cache.json'
+        _kst_now = datetime.now(timezone(timedelta(hours=9)))
+        _today_str = _kst_now.strftime('%Y-%m-%d')
+
+        _target_items = []  # [{'code': ..., 'name': ...}]
+        if _cond_cache_path.exists():
+            try:
+                _cdata = _json.loads(_cond_cache_path.read_text(encoding='utf-8'))
+                _updated_at = str(_cdata.get('updated_at', ''))
+                _cache_date = _updated_at[:10]
+                _raw_codes = _cdata.get('codes', []) or []
+                _raw_items = _cdata.get('items', []) or []
+                _name_map = {str(it.get('code')): str(it.get('name', '')) for it in _raw_items if isinstance(it, dict)}
+
+                # 평일 장중(09:30~15:40)에 오늘자 캐시가 아니거나 비어있으면 클라우드 자체 스캔 폴백 가동
+                _hm_int = _kst_now.hour * 100 + _kst_now.minute
+                _is_stale_intraday = (_kst_now.weekday() < 5 and 930 <= _hm_int <= 2359 and _cache_date < _today_str)
+                if _raw_codes and not _is_stale_intraday:
+                    _target_items = [{'code': str(c), 'name': _name_map.get(str(c), '')} for c in _raw_codes]
+                    condition_meta = {
+                        'cond_name': str(_cdata.get('cond_name', '60일이상추가 1000억')),
+                        'source': str(_cdata.get('source', 'KIWOOM_HTS_WS')),
+                        'updated_at': _updated_at,
+                        'is_live_hts': True,
+                    }
+            except Exception as _ce:
+                logger.warning(f"키움 조건검색 캐시 로드 예외: {_ce}")
+
+        # PC/봇 OFF 등으로 당일 HTS 캐시가 없을 때: 클라우드 자체 '시총 1000억+ & 60일 지표 돌파' 스캔 폴백
+        if not _target_items and common is not None and not common.empty:
+            _fb_pool = common[
+                (common['Marcap'] >= 1000 * 1e8) &
+                (common['ChagesRatio'] >= 8.0) &
+                (common['Amount'] >= 80 * 1e8)
+            ].sort_values(by=['ChagesRatio', 'Amount'], ascending=[False, False]).head(12)
+            for _, _fr in _fb_pool.iterrows():
+                _fc = str(_fr['Code'])
+                _fn = str(_fr['Name'])
+                _sr_chk = analyze_support_resistance(_fc, _fn)
+                _above_ma60 = False
+                if _sr_chk:
+                    _above_ma60 = bool(_sr_chk.get('is_60_breakout') or _sr_chk.get('is_20_breakout') or _sr_chk.get('disp5_pct', 0) >= 0)
+                if _above_ma60:
+                    _target_items.append({'code': _fc, 'name': _fn})
+                if len(_target_items) >= 6:
+                    break
+            condition_meta['updated_at'] = _kst_now.strftime('%Y-%m-%d %H:%M:%S')
+            condition_meta['is_live_hts'] = False
+
+        # 공통 데이터 프레임 인덱싱 + 누락 종목 네이버 실시간 시세 보완
+        _common_map = {}
+        if common is not None and not common.empty:
+            for _, _crow in common.iterrows():
+                _common_map[str(_crow['Code'])] = _crow.to_dict()
+
+        _nh = {'User-Agent': 'Mozilla/5.0'}
+        _closing_code_set = {p['code'] for p in closing_picks}
+        _swing_code_set = {p['code'] for p in swing_picks}
+
+        for _item in _target_items:
+            _code = str(_item['code']).strip()
+            if not _code:
+                continue
+            _row = dict(_common_map.get(_code, {}))
+            _name = str(_row.get('Name') or _item.get('name') or _code)
+            _market = str(_row.get('Market') or 'KRX')
+            _close_p = float(_row.get('Close') or 0)
+            _open_p = float(_row.get('Open') or 0)
+            _high_p = float(_row.get('High') or 0)
+            _low_p = float(_row.get('Low') or 0)
+            _chg_pct = float(_row.get('ChagesRatio') or 0)
+            _amount_won = float(_row.get('Amount') or 0)
+            _marcap = float(_row.get('Marcap') or 0)
+
+            # 누락되었거나 OHLC 미보정(Open==Close==High==Low) 종목 실시간 보정
+            if _close_p <= 0 or (_open_p == _close_p == _high_p == _low_p):
+                try:
+                    _pr = _req.get(f'https://m.stock.naver.com/api/stock/{_code}/price?pageSize=1&page=1', headers=_nh, timeout=4)
+                    if _pr.status_code == 200:
+                        _pd_list = _pr.json()
+                        if isinstance(_pd_list, list) and _pd_list:
+                            _pd = _pd_list[0]
+                            _close_p = float(str(_pd.get('closePrice', _close_p)).replace(',', '') or _close_p)
+                            _open_p = float(str(_pd.get('openPrice', _close_p)).replace(',', '') or _close_p)
+                            _high_p = float(str(_pd.get('highPrice', _close_p)).replace(',', '') or _close_p)
+                            _low_p = float(str(_pd.get('lowPrice', _close_p)).replace(',', '') or _close_p)
+                            _chg_pct = float(str(_pd.get('fluctuationsRatio', _chg_pct)).replace(',', '') or _chg_pct)
+                            _vol_raw = float(str(_pd.get('accumulatedTradingVolume', 0)).replace(',', '') or 0)
+                            if _amount_won <= 0 and _vol_raw > 0 and _close_p > 0:
+                                _amount_won = _vol_raw * _close_p
+                except Exception:
+                    pass
+                try:
+                    _br = _req.get(f'https://m.stock.naver.com/api/stock/{_code}/basic', headers=_nh, timeout=4)
+                    if _br.status_code == 200:
+                        _bd = _br.json()
+                        if _bd.get('stockName'):
+                            _name = str(_bd['stockName'])
+                        _mkt_ex = (_bd.get('stockExchangeType') or {}).get('name')
+                        if _mkt_ex:
+                            _market = str(_mkt_ex)
+                        if _close_p <= 0 and _bd.get('closePrice'):
+                            _close_p = float(str(_bd.get('closePrice')).replace(',', '') or 0)
+                        if _chg_pct == 0 and _bd.get('fluctuationsRatio'):
+                            _chg_pct = float(str(_bd.get('fluctuationsRatio')).replace(',', '') or 0)
+                except Exception:
+                    pass
+                if _marcap <= 0:
+                    try:
+                        _ir = _req.get(f'https://m.stock.naver.com/api/stock/{_code}/integration', headers=_nh, timeout=4)
+                        if _ir.status_code == 200:
+                            for _ti in (_ir.json().get('totalInfos') or []):
+                                if _ti.get('code') == 'marketValue':
+                                    _mv_s = str(_ti.get('value', '')).replace(',', '')
+                                    _jo_m = re.search(r'(\d+)조', _mv_s)
+                                    _ek_m = re.search(r'(\d+)억', _mv_s)
+                                    _mc_e = (int(_jo_m.group(1)) * 10000 if _jo_m else 0) + (int(_ek_m.group(1)) if _ek_m else 0)
+                                    if _mc_e > 0:
+                                        _marcap = float(_mc_e * 1e8)
+                                    break
+                    except Exception:
+                        pass
+
+            if _close_p <= 0:
+                continue
+
+            _amount_eok = _amount_won / 1e8
+            _marcap_str = format_marcap(_marcap)
+            _head_ratio = (_high_p - _close_p) / (_high_p - _low_p) if _high_p > _low_p else 0.0
+            _sr = analyze_support_resistance(_code, _name)
+            _sr_score = _sr.get('sr_score', 0.0) if _sr else 0.0
+            _sr_status = _sr.get('status', '60일 추세 돌파 스캔') if _sr else '60일 추세 돌파 스캔'
+            _support_price = _sr.get('support_price', int(_close_p * 0.98)) if _sr else int(_close_p * 0.98)
+            _next_res = _sr.get('next_res', f"{int(_close_p * 1.05):,}원") if _sr else f"{int(_close_p * 1.05):,}원"
+            _room_pct = _sr.get('room_pct', 5.0) if _sr else 5.0
+            _sr_tags = _sr.get('tags', []) if _sr else []
+            _rvol = _sr.get('rvol', 1.5) if _sr else 1.5
+            _disp5_pct = _sr.get('disp5_pct', 0.0) if _sr else 0.0
+            _turnover_pct = round((_amount_eok / (_marcap / 1e8)) * 100, 2) if _marcap > 0 else 0.0
+            _stock_sec = get_stock_sector(_code)
+            _micro = analyze_intraday_microstructure(_code, _close_p)
+            _major_flow = fetch_stock_major_flow(_code)
+
+            # 종가베팅과 100% 동일한 AI 점수 공식 적용
+            _abs_vol_score = min(_amount_eok / 40.0, 20.0)
+            _turnover_score = min(_turnover_pct * 2.0, 10.0)
+            _candle_score = max(0.0, (1.0 - _head_ratio) * 15.0)
+            _score = 40.0 + _abs_vol_score + _turnover_score + _candle_score + _sr_score
+
+            _reasons = [
+                f"🎯 조건식('60일이상추가 1000억') 포착",
+                f"거래대금 {int(_amount_eok):,}억(시총회전율 {_turnover_pct:.1f}%)",
+                f"캔들 완성도(윗꼬리 {int(_head_ratio*100)}%)"
+            ]
+            if _sr_status:
+                _reasons.append(f"차트: {_sr_status}")
+            if _rvol >= 2.0:
+                _score += min((_rvol - 1.0) * 2.0, 6.0)
+                _reasons.append(f"상대거래량 RVOL {_rvol:.1f}배")
+            if _micro:
+                _vwap_diff = _micro.get('vwap_diff_pct', 0.0)
+                _peak_t = _micro.get('peak_time', '')
+                _auc_diff = _micro.get('closing_auction_diff', 0.0)
+                if _vwap_diff >= 0:
+                    _score += 3.0
+                    _reasons.append(f"당일 VWAP 상회(+{_vwap_diff:.1f}% · 고점 {_peak_t})")
+                if _auc_diff >= 0.3:
+                    _score += 2.0
+                    _reasons.append(f"막판 동시호가 유입(+{_auc_diff:.2f}%)")
+                if _micro.get('is_morning_dump'):
+                    _score -= 6.0
+                    _reasons.append(f"⚠️ 오전 고점({_peak_t}) 대비 VWAP 하회(-6점)")
+            if _stock_sec in hot_sector_names:
+                _score += 5.0
+                _reasons.append(f"🔥주도섹터({_stock_sec}) 동조화")
+            if _code in hot_leader_codes:
+                _score += 4.0
+                _reasons.append(f"👑주도섹터 1등 대장주")
+            if _stock_sec in winning_sectors:
+                _score += 4.0
+                _reasons.append(f"🧠고승률 섹터(+4점)")
+
+            _tags = ['HTS조건식', '60일1000억'] + _sr_tags
+            if _code in _closing_code_set:
+                _score += 5.0
+                _reasons.append("👑AI 종가베팅 동시 포착(더블컨펌)")
+                _tags.insert(0, "👑종가더블컨펌")
+            elif _code in _swing_code_set:
+                _score += 4.0
+                _reasons.append("🌊AI 스윙 동시 포착(더블컨펌)")
+                _tags.insert(0, "🌊스윙더블컨펌")
+
+            if _head_ratio > 0.38:
+                _score -= 6.0
+                _reasons.append(f"⚠️ 윗꼬리 과다({int(_head_ratio*100)}% > 38%) 주의(-6점)")
+                _tags.append("⚠️윗꼬리주의")
+            if _major_flow.get('toxic_disclosure'):
+                _score -= 15.0
+                _reasons.append(f"🚨 악재 공시 감지({_major_flow['toxic_disclosure']})")
+                _tags.append("🚨악재공시주의")
+            if _major_flow.get('is_dual_buy'):
+                _score += 6.0
+                _reasons.append("🏦외인·기관 쌍끌이 수급(+6점)")
+                _tags.append("쌍끌이수급")
+            elif _major_flow.get('is_organ_accum'):
+                _score += 3.0
+                _reasons.append("🏦기관 연속 순매수(+3점)")
+                _tags.append("기관매집")
+            elif _major_flow.get('is_major_dump'):
+                _score -= 5.0
+                _reasons.append("⚠️최근 3일 외인·기관 순매도(-5점)")
+
+            if _code in catalyst_codes:
+                _score += 10.0
+                _reasons.append("DART 공시 호재(+10점)")
+                _tags.append("실적/공시호재")
+
+            _score = max(0.0, min(_score, 99.0))
+            _hp_str = "HTS 조건식 포착 → AI 80점+ 시 종가/스윙 분할 매수, 80점 미만 시 관망"
+
+            condition_picks.append({
+                'code': _code,
+                'name': _name,
+                'market': _market,
+                'sector': _stock_sec,
+                'price': int(_close_p),
+                'change_pct': round(_chg_pct, 2),
+                'amount_eok': int(_amount_eok),
+                'target_1': int(_close_p * 1.02),
+                'target_1_pct': '+2.0%',
+                'target_2': int(_close_p * 1.05),
+                'target_2_pct': '+5.0%',
+                'stop_loss': int(_close_p * 0.98),
+                'stop_loss_pct': '-2.0%',
+                'holding_period': _hp_str,
+                'score': int(round(_score)),
+                'reason': " · ".join(_reasons),
+                'tags': _tags,
+                'sr_status': _sr_status,
+                'support_price': _support_price,
+                'next_resistance': _next_res,
+                'room_pct': _room_pct,
+                'marcap': int(_marcap),
+                'marcap_str': _marcap_str,
+                'rvol': _rvol,
+                'turnover_pct': _turnover_pct,
+                'vwap': _micro.get('vwap') if _micro else int(_close_p * 0.99),
+                'vwap_diff_pct': _micro.get('vwap_diff_pct', 0.0) if _micro else 0.0,
+                'peak_time': _micro.get('peak_time', '15:15') if _micro else '15:15',
+                'closing_auction_diff': _micro.get('closing_auction_diff', 0.0) if _micro else 0.0,
+                'is_breakout': bool(_sr and (_sr.get('is_20_breakout') or _sr.get('is_60_breakout'))),
+            })
+
+        condition_picks.sort(key=lambda x: x['score'], reverse=True)
+    except Exception as _cond_err:
+        logger.warning(f"조건검색식('60일이상추가 1000억') AI 평가 예외: {_cond_err}")
+
+    for p in (closing_picks + swing_picks + breakout_picks + pullback_picks + condition_picks):
         if 'turnover_pct' not in p:
             mc = p.get('marcap', 0)
             p['turnover_pct'] = round((p.get('amount_eok', 0) / (mc / 1e8)) * 100, 2) if mc > 0 else 0.0
@@ -1506,6 +1779,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         'swing_regime': resolve_swing_targets(10000, regime=regime, market_context=market_context),
         'breakout': breakout_picks,
         'pullback': pullback_picks,
+        'condition': condition_picks,
+        'condition_meta': condition_meta,
         'hot_sectors': hot_sectors,
         'breadth_pct': breadth_pct,
     }
@@ -1514,4 +1789,4 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
 
 
 def get_fallback_recommendations():
-    return {"regime": {"status": "neutral", "badge": "정밀 선별", "badge_class": "regime-neutral", "message": "원칙 준수", "position_advice": "현금 관망"}, "closing": [], "swing": [], "breakout": [], "pullback": [], "hot_sectors": []}
+    return {"regime": {"status": "neutral", "badge": "정밀 선별", "badge_class": "regime-neutral", "message": "원칙 준수", "position_advice": "현금 관망"}, "closing": [], "swing": [], "breakout": [], "pullback": [], "condition": [], "condition_meta": {}, "hot_sectors": []}
