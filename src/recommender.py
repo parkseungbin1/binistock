@@ -210,16 +210,44 @@ def get_stock_sector(code, default="주도주"):
     return _SECTOR_MAP.get(code, default)
 
 
+_ETF_BRAND_PREFIX_RE = re.compile(
+    r'^(?:KODEX|TIGER|RISE|KBSTAR|ACE|SOL|PLUS|HANARO|KOSEF|KOACT|'
+    r'TIMEFOLIO|TIME|ARIRANG|KIWOOM|WON|WOORI|BNK|HK|1Q|VITA|'
+    r'FOCUS|TREX|SMART|TRUSTON|UNICORN|KINDEX|MAESTRO|HEROES|히어로즈|QV|TRUE|N2)\b',
+    re.IGNORECASE,
+)
+_NON_STOCK_DERIV_RE = re.compile(
+    r'(?:리츠$|이리츠코크렙|\bETF\b|\bETN\b|\bSPAC\b|\bREIT\b)',
+    re.IGNORECASE,
+)
+_ISSUER_DERIV_RE = re.compile(
+    r'(?:삼성|신한|KB|미래에셋|NH|하나|대신|메리츠|키움|한화|유진|IBK|교보)\s+.*(?:ETN|ETF|선물|채권|인버스|레버리지|2X)',
+    re.IGNORECASE,
+)
+
+
 def is_common_stock(row):
-    """보통주 필터링 (우선주, 스팩, ETF, ETN, 인버스/레버리지, 신주인수권 제외)"""
-    name = str(row.get('Name', ''))
-    code = str(row.get('Code', ''))
+    """보통주 필터링 (우선주, 스팩, ETF, ETN, 채권, 리츠, 인버스/레버리지, 신주인수권 원천 제외)"""
+    stock_end_type = str(row.get('StockEndType') or '').strip().lower()
+    if stock_end_type and stock_end_type != 'stock':
+        return False
+    name = str(row.get('Name', '')).strip()
+    code = str(row.get('Code', '')).strip()
     if len(code) != 6 or not code.isdigit():
         return False
     if code[-1] != '0':  # 우선주 제외 (0으로 끝나는 본주만 허용)
         return False
-    exclude_keywords = ['스팩', 'ETF', 'ETN', '선물', '인버스', '레버리지', '채권', '국채', '원자재', 'KODEX', 'TIGER', 'ACE', 'KBSTAR', 'SOL']
-    if any(k in name for k in exclude_keywords):
+    if _ETF_BRAND_PREFIX_RE.search(name) or _NON_STOCK_DERIV_RE.search(name) or _ISSUER_DERIV_RE.search(name):
+        return False
+    up_name = name.upper()
+    exclude_keywords = [
+        '스팩', '선물', '인버스', '레버리지', '채권', '국채', '국고채', '회사채', '통안채',
+        '금융채', '물가채', '단기채', '초단기', '머니마켓', 'MMF', 'KOFR', 'CD금리', 'SOFR',
+        '원자재', '금현물', '은현물', '원유', '천연가스', '액티브', '커버드콜',
+        '맥쿼리인프라', '맵스리얼티', '(합성', '합성H', '(H)', 'TR)',
+        'KODEX', 'TIGER', 'RISE', 'KBSTAR', 'HANARO', 'KOSEF', 'KOACT', 'TIMEFOLIO', 'ARIRANG',
+    ]
+    if any(k in up_name for k in exclude_keywords):
         return False
     return True
 
@@ -251,6 +279,9 @@ def fetch_naver_realtime_pool():
                 if r.status_code == 200:
                     stocks = r.json().get('stocks', [])
                     for s in stocks:
+                        stock_end_type = str(s.get('stockEndType') or '').strip().lower()
+                        if stock_end_type and stock_end_type != 'stock':
+                            continue
                         code = str(s.get('itemCode') or '').strip()
                         name = s.get('stockName')
                         close_p = s.get('closePriceRaw')
@@ -263,6 +294,7 @@ def fetch_naver_realtime_pool():
                                 'Code': code,
                                 'Name': str(name),
                                 'Market': mkt,
+                                'StockEndType': stock_end_type or 'stock',
                                 'Close': float(close_p),
                                 'Open': float(close_p),
                                 'High': float(close_p),
