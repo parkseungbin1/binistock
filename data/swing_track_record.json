@@ -817,6 +817,52 @@
         }
       ],
       "evaluated": true
+    },
+    {
+      "date": "2026-11-12",
+      "picks": [
+        {
+          "code": "036460",
+          "name": "한국가스공사",
+          "market": "KOSPI",
+          "sector": "연료용 가스 제",
+          "catalyst": "한국가스공사 3분기 영업이익 5,878억원…51% 증가",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/422/0000925500",
+          "catalyst_source": "연합뉴스TV",
+          "entry_price": 38550,
+          "price": 38550,
+          "change_pct": 5.18,
+          "amount_eok": 138,
+          "marcap": 3558666150000,
+          "marcap_str": "3조 5,587억",
+          "target_1": 40478,
+          "target_1_pct": "+5.0%",
+          "target_2": 42020,
+          "target_2_pct": "+9.0%",
+          "stop_loss": 37394,
+          "stop_loss_pct": "-3.0%",
+          "rule_v": 1,
+          "score": 91,
+          "reason": "20일선(36,795원) 눌림목 지지 · 이격도 4.6% 안정 구간 · 🔥 60일 신고가 대돌파 (상방 매물 100% 공백) · 당일 VWAP 상회(+1.9%) · 🏦외인·기관 쌍끌이 매수(+5점)",
+          "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
+          "tags": [
+            "20일선눌림목",
+            "추세우상향",
+            "안정적손익비",
+            "60일신고가대돌파",
+            "매물100%공백",
+            "쌍끌이수급"
+          ],
+          "chart_url": "https://m.stock.naver.com/domestic/stock/036460/total",
+          "highest_price": 38550,
+          "lowest_price": 38550,
+          "max_return_pct": 0.0,
+          "status": "진행중",
+          "completed": false,
+          "holding_days": 0
+        }
+      ],
+      "evaluated": false
     }
   ]
 }
