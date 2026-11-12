@@ -1650,10 +1650,10 @@ def generate_html():
             line-height: 1.45;
         }}
 
-        /* AI 추천 종목 레이더 - 1줄 6칸 대형 카드형 네비게이션 */
+        /* AI 추천 종목 레이더 - 1줄 4칸 대칭형 대형 카드 네비게이션 */
         .rec-nav {{
             display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 12px;
             width: 100%;
             margin-bottom: 18px;
@@ -1708,6 +1708,12 @@ def generate_html():
         .rec-tab.tab-indigo {{ border-top-color: #a855f7; }}
         .rec-tab.tab-emerald {{ border-top-color: #10b981; }}
         .rec-tab.tab-cyan {{ border-top-color: #06b6d4; }}
+        .rec-tab.tab-cyan.active {{
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(59, 130, 246, 0.2));
+            border-color: #06b6d4;
+            border-top: 3px solid #22d3ee;
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.28);
+        }}
         .rec-tab.tab-rose {{ border-top-color: #f43f5e; }}
         .rec-tab.tab-rose.active {{
             background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(37, 99, 235, 0.22));
@@ -3870,6 +3876,9 @@ def generate_html():
         if (window.location.hash === '#tab-flow') {{
             const flowTab = document.querySelector('.rec-tab.tab-rose');
             if (flowTab) switchRecTrack('flow', flowTab);
+        }} else if (window.location.hash === '#tab-condition') {{
+            const condTab = document.querySelector('.rec-tab.tab-cyan');
+            if (condTab) switchRecTrack('condition', condTab);
         }}
 
         function filterPlaybook(cat, btn) {{

@@ -1482,6 +1482,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         _today_str = _kst_now.strftime('%Y-%m-%d')
 
         _target_items = []  # [{'code': ..., 'name': ...}]
+        _hts_cache_valid = False
         if _cond_cache_path.exists():
             try:
                 _cdata = _json.loads(_cond_cache_path.read_text(encoding='utf-8'))
@@ -1491,10 +1492,11 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 _raw_items = _cdata.get('items', []) or []
                 _name_map = {str(it.get('code')): str(it.get('name', '')) for it in _raw_items if isinstance(it, dict)}
 
-                # 평일 장중(09:30~15:40)에 오늘자 캐시가 아니거나 비어있으면 클라우드 자체 스캔 폴백 가동
+                # 평일 장중(09:30~23:59)에 오늘자 캐시가 아니면 클라우드 자체 스캔 폴백 가동 (단, 오늘자 0종목 정상 스캔은 유효 처리)
                 _hm_int = _kst_now.hour * 100 + _kst_now.minute
                 _is_stale_intraday = (_kst_now.weekday() < 5 and 930 <= _hm_int <= 2359 and _cache_date < _today_str)
-                if _raw_codes and not _is_stale_intraday:
+                if _updated_at and not _is_stale_intraday:
+                    _hts_cache_valid = True
                     _target_items = [{'code': str(c), 'name': _name_map.get(str(c), '')} for c in _raw_codes]
                     condition_meta = {
                         'cond_name': str(_cdata.get('cond_name', '60일이상추가 1000억')),
@@ -1506,7 +1508,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.warning(f"키움 조건검색 캐시 로드 예외: {_ce}")
 
         # PC/봇 OFF 등으로 당일 HTS 캐시가 없을 때: 클라우드 자체 '시총 1000억+ & 60일 지표 돌파' 스캔 폴백
-        if not _target_items and common is not None and not common.empty:
+        if not _hts_cache_valid and common is not None and not common.empty:
             _fb_pool = common[
                 (common['Marcap'] >= 1000 * 1e8) &
                 (common['ChagesRatio'] >= 8.0) &
@@ -1693,6 +1695,11 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 _score += 10.0
                 _reasons.append("DART 공시 호재(+10점)")
                 _tags.append("실적/공시호재")
+
+            if _major_flow.get('toxic_disclosure'):
+                _score = min(_score, 74.0)
+            elif _head_ratio > 0.38:
+                _score = min(_score, 79.0)
 
             _score = max(0.0, min(_score, 99.0))
             _hp_str = "HTS 조건식 포착 → AI 80점+ 시 종가/스윙 분할 매수, 80점 미만 시 관망"
