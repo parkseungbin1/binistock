@@ -1003,8 +1003,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'price': int(close_p),
                 'change_pct': round(change_pct, 2),
                 'amount_eok': int(amount_eok),
-                'target_1': int(close_p * 1.03),
-                'target_1_pct': '+3.0%',
+                'target_1': int(close_p * 1.02),
+                'target_1_pct': '+2.0%',
                 'target_2': int(close_p * 1.05),
                 'target_2_pct': '+5.0%',
                 'stop_loss': int(close_p * 0.98),
@@ -1055,8 +1055,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         (common['Close'] >= common['Open'])    # 당일 시가 대비 양봉 확인
     ].copy()
 
-    # 거래대금 순으로 정렬하되, 임의의 개수 제한(.head) 없이 1차 조건을 만족한 전종목을 100% 전수 검사
-    swing_pool = swing_pool.sort_values(by='Amount', ascending=False)
+    # 거래대금 상위 45개 정예 후보로 압축해 속도 최적화 (GitHub Actions 15:10 지연 방지)
+    swing_pool = swing_pool.sort_values(by='Amount', ascending=False).head(45)
 
     for _, row in swing_pool.iterrows():
         code = str(row['Code'])
@@ -1065,6 +1065,10 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         name = str(row['Name'])
         market = str(row['Market'])
         close_p = float(row['Close'])
+        high_p = float(row['High'])
+        low_p = float(row['Low'])
+        if high_p > low_p and ((high_p - close_p) / (high_p - low_p)) > 0.42:
+            continue
         amount_eok = float(row['Amount']) / 1e8
         change_pct = float(row['ChagesRatio'])
         marcap = float(row['Marcap']) if 'Marcap' in row and pd.notnull(row['Marcap']) else 0
@@ -1088,15 +1092,32 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             is_near_ma20 = (close_p >= ma20) and (dist_ma20 <= 5.0)
 
             if is_uptrend and is_golden and is_near_ma20:
+                major_flow = fetch_stock_major_flow(code)
+                if major_flow.get('toxic_disclosure'):
+                    logger.warning(f"[스윙 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
+                    continue
+
                 score = 65.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
                 reasons = [f"20일선({int(ma20):,}원) 눌림목 지지", f"이격도 {dist_ma20:.1f}% 안정 구간"]
                 tags = ['20일선눌림목', '추세우상향', '안정적손익비']
+
+                if major_flow.get('is_dual_buy'):
+                    score += 5.0
+                    reasons.append("🏦외인·기관 쌍끌이 매수(+5점)")
+                    tags.append("쌍끌이수급")
+                elif major_flow.get('is_organ_accum'):
+                    score += 2.0
+                    reasons.append("🏦기관 연속 순매수(+2점)")
+                elif major_flow.get('is_major_dump'):
+                    score -= 5.0
+                    reasons.append("⚠️외인·기관 동시 순매도(-5점)")
 
                 if code in catalyst_codes:
                     score += 12.0
                     reasons.append("실적/호재 공시 연계")
                     tags.append("실적모멘텀")
 
+                score = max(0.0, score)
                 # AI 점수 80점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
                 if score < 80.0:
                     continue

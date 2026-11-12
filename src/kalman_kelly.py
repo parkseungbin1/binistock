@@ -27,7 +27,7 @@ class KalmanKellyFilter:
         prior_win_rate: float = 0.73,
         prior_p: float = 0.04,
         q_w: float = 0.002,
-        r_w: float = 0.07,
+        r_w: float = 0.08,
     ):
         self.w_hat = float(prior_win_rate)
         self.P_w = float(prior_p)
@@ -36,16 +36,17 @@ class KalmanKellyFilter:
 
         self.win_mag = 3.50
         self.loss_mag = 1.65
-        self.P_wm = 0.50
-        self.P_lm = 0.50
+        # 수익/손실 크기 추정 공분산을 보수적으로 유지해 단일 이상치(블랙스완 갭)의 과잉 왜곡 차단
+        self.P_wm = 0.12
+        self.P_lm = 0.12
         self.Q_m = 0.01
-        self.R_m = 0.20
+        self.R_m = 0.65
 
         self.streak = 0
         self.trade_count = 0
 
     def update(self, is_win: bool, ret_pct: float):
-        """단일 매매 결과를 칼만 필터 상태에 반영"""
+        """단일 영업일(또는 매매) 결과를 칼만 필터 상태에 반영"""
         self.trade_count += 1
         y = 1.0 if is_win else 0.0
 
@@ -58,7 +59,7 @@ class KalmanKellyFilter:
         self.w_hat = max(0.35, min(0.92, w_pred + K_w * (y - w_pred)))
         self.P_w = max(0.001, (1.0 - K_w) * P_pred)
 
-        # 3. 손익 크기(Magnitude) 갱신
+        # 3. 손익 크기(Magnitude) 갱신 (손실 이상치 4.5% 캡으로 과잉 왜곡 방어)
         if is_win and ret_pct > 0:
             P_pred_m = self.P_wm + self.Q_m
             K_m = P_pred_m / (P_pred_m + self.R_m)
@@ -66,7 +67,7 @@ class KalmanKellyFilter:
             self.P_wm = max(0.01, (1.0 - K_m) * P_pred_m)
             self.streak = (self.streak + 1) if self.streak > 0 else 1
         elif not is_win and ret_pct < 0:
-            loss_val = abs(ret_pct)
+            loss_val = min(abs(ret_pct), 4.5)
             P_pred_m = self.P_lm + self.Q_m
             K_m = P_pred_m / (P_pred_m + self.R_m)
             self.loss_mag = max(0.5, min(10.0, self.loss_mag + K_m * (loss_val - self.loss_mag)))
@@ -75,8 +76,6 @@ class KalmanKellyFilter:
 
     def get_calibrated_kelly(self, risk_score: int = 36, default_base_pct: float = 24.0) -> dict[str, Any]:
         """칼만 필터 상태를 종합하여 당일 권장 투입률 및 텔레메트리 산출"""
-        rr = self.win_mag / max(self.loss_mag, 0.5)
-        full_k = self.w_hat - ((1.0 - self.w_hat) / max(rr, 0.5))
         rr = self.win_mag / max(self.loss_mag, 0.5)
         full_k = self.w_hat - ((1.0 - self.w_hat) / max(rr, 0.5))
         portfolio_k = max(0.35, min(0.72, full_k * 1.15))
@@ -166,15 +165,43 @@ def load_trade_records() -> list[dict]:
     return trades
 
 
+def aggregate_daily_records(trades: list[dict]) -> list[dict]:
+    """
+    동일 영업일 동시 청산(포트폴리오 상관 충격)이 독립 다중 연패로 3배 증폭되는 왜곡을 막기 위해
+    일자별 포트폴리오 평균 수익률 단위로 집계합니다.
+    """
+    by_date: dict[str, list[dict]] = {}
+    undated = []
+    for t in trades:
+        dt = str(t.get('date', '')).strip()
+        if not dt:
+            undated.append(t)
+            continue
+        by_date.setdefault(dt, []).append(t)
+
+    daily_records = []
+    for dt in sorted(by_date.keys()):
+        rows = by_date[dt]
+        avg_ret = sum(float(r['ret_pct']) for r in rows) / len(rows)
+        daily_records.append({
+            'date': dt,
+            'ret_pct': round(avg_ret, 4),
+            'is_win': avg_ret > 0,
+            'count': len(rows),
+        })
+    return daily_records + undated
+
+
 def calibrate_kelly_with_kalman(
     base_invest_pct: float = 24.0,
     risk_score: int = 36
 ) -> dict[str, Any]:
     kf = KalmanKellyFilter(prior_win_rate=0.73, prior_p=0.04)
-    trades = load_trade_records()
+    raw_trades = load_trade_records()
+    daily_trades = aggregate_daily_records(raw_trades)
 
-    if trades:
-        for t in trades:
+    if daily_trades:
+        for t in daily_trades:
             kf.update(t['is_win'], t['ret_pct'])
 
     return kf.get_calibrated_kelly(risk_score=risk_score, default_base_pct=base_invest_pct)
