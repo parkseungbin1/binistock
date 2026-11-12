@@ -209,14 +209,20 @@ def generate_html():
         kalman_rr = kelly_rr
         kalman_mom = "⚖️ 정상 중립"
 
-    # 종가베팅(15:10)은 익일 09:00 시초가 매도 전략이므로
-    # 15:00~15:45 정규장 마감 시간대가 아닐 때는 직전 공식 확정 종목을 그대로 고정보존
+    # 종가베팅(15:10)은 익일 09:00~09:20 시초가 대응 전략이므로:
+    # - 15:00~15:45 정규장 마감 구간: 당일 실시간 선별 종목 표시
+    # - 이전 거래일 종목: 익일 시초가 검증 완료(closing_evaluated) 또는 09:25 이후 장중에는 메인 탭 초기화 (성과 탭에만 보존)
+    today_str_kst = now_kst.strftime('%Y-%m-%d')
     if not is_closing_window and latest_record and latest_record.get('picks'):
-        closing_picks = latest_record['picks']
         closing_ref_date = latest_record['date']
-        closing_evaluated = latest_record.get('evaluated', False)
+        closing_evaluated = bool(latest_record.get('evaluated', False))
+        is_past_closing_pick = (closing_ref_date < today_str_kst)
+        if is_past_closing_pick and (closing_evaluated or hm_kst >= 925 or now_kst.weekday() >= 5):
+            closing_picks = []
+        else:
+            closing_picks = latest_record['picks']
     else:
-        closing_ref_date = now_kst.strftime('%Y-%m-%d')
+        closing_ref_date = today_str_kst
         closing_evaluated = False
 
     if is_closing_window:
@@ -225,13 +231,19 @@ def generate_html():
         closing_tab_pill = f"{short_ref_date} 골든타임 · 익일 +3~5%"
         closing_banner_html = f"<b>🎯 오늘({closing_ref_date}) 15:10 종가베팅 추천 종목</b>: 오후 15:10~15:30 매수 체결 → 익일 아침 09:00~09:20 시초가 갭상승 시 전량 분할 익절 (+3%~+5%)"
     else:
-        if closing_evaluated:
-            short_ref_date = closing_ref_date[5:] if len(str(closing_ref_date)) >= 10 else closing_ref_date
+        short_ref_date = closing_ref_date[5:] if len(str(closing_ref_date)) >= 10 else closing_ref_date
+        if not closing_picks and closing_ref_date < today_str_kst:
+            closing_tab_title = "⚡ 15:20 종가베팅"
+            closing_tab_pill = "오늘 15:10 선별 대기"
+            closing_banner_html = (
+                f"<b>🎯 직전({closing_ref_date}) 종가베팅 시초가 검증 완료</b>: 장중 메인 추천 목록 초기화 완료 · "
+                "지난 결과는 <b>[📊 1개월 종가베팅 성과]</b> 탭에 보존됩니다 (오늘 15:10 정규장 마감 시 새 종목 자동 선별)"
+            )
+        elif closing_evaluated:
             closing_tab_title = "⚡ 15:20 종가베팅"
             closing_tab_pill = f"{short_ref_date} 검증완료 · 익일 +3~5%"
             closing_banner_html = f"<b>🎯 직전({closing_ref_date}) 종가베팅 시초가 검증 완료</b>: 익일 시초가 매도 완료 구간 (오늘 15:10 정규장 마감 시 새로운 종목으로 자동 교체됩니다)"
         else:
-            short_ref_date = closing_ref_date[5:] if len(str(closing_ref_date)) >= 10 else closing_ref_date
             closing_tab_title = "⚡ 15:20 종가베팅"
             closing_tab_pill = f"{short_ref_date} 매수대응 · 익일 +3~5%"
             closing_banner_html = f"<b>🎯 직전({closing_ref_date}) 종가베팅 공식 추천 종목</b>: 오늘 아침 09:00~09:20 시초가 갭상승 시 전량 분할 익절 (+3%~+5%) 대응 구간 (오늘 15:10에 새 종목 선별)"
@@ -442,7 +454,21 @@ def generate_html():
         </div>
         """
 
-    closing_cards_html = "".join([render_rec_card(p, "theme-closing") for p in closing_picks])
+    if closing_picks:
+        closing_cards_html = "".join([render_rec_card(p, "theme-closing") for p in closing_picks])
+    elif not is_closing_window and closing_ref_date < today_str_kst:
+        closing_cards_html = (
+            "<div class='empty-card'>"
+            f"⏳ 직전(<b>{closing_ref_date}</b>) 종가베팅 시초가 대응·검증이 완료되어 추천 카드를 초기화했습니다.<br>"
+            "직전 매매 내역은 상단 <b>[📊 1개월 종가베팅 성과]</b> 탭에서 확인할 수 있으며, 오늘 <b>15:10</b> 정규장 마감 시 새 종목으로 자동 갱신됩니다."
+            "</div>"
+        )
+    else:
+        closing_cards_html = (
+            "<div class='empty-card'>"
+            f"🛡️ 오늘(<b>{closing_ref_date}</b>) 엄격한 S급 기준(시총·거래대금·회전율·상단매물·AI 80점 이상)을 모두 통과한 종가베팅 종목이 없어 무포지션 현금 보존을 권장합니다."
+            "</div>"
+        )
     # 시장 환경 연동 스윙 레짐 요약
     active_swing_stg = rec_data.get('swing_regime') or (swing_picks[0] if swing_picks else {})
     swing_regime_label = active_swing_stg.get('mode_label', '🛡️ 방어형 3분할 (하락/혼조장)')
