@@ -8,6 +8,7 @@ import json
 import logging
 import re
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 import pandas as pd
 
@@ -521,7 +522,7 @@ def analyze_support_resistance(code: str, name: str) -> dict:
     import re
     try:
         url = f"https://fchart.stock.naver.com/sise.nhn?symbol={code}&timeframe=day&count=65&requestType=0"
-        res = requests.get(url, timeout=4)
+        res = requests.get(url, timeout=2.5)
         if res.status_code != 200 or not res.text:
             return None
         cleaned = re.sub(r'<\?xml[^>]*\?>', '', res.text).strip()
@@ -557,6 +558,7 @@ def analyze_support_resistance(code: str, name: str) -> dict:
         # 5일선·20일선·60일선 이동평균 및 5일선 이격도
         ma5 = sum(r['close'] for r in rows[-5:]) / 5.0
         ma20 = sum(r['close'] for r in rows[-20:]) / 20.0
+        ma20_prev = sum(r['close'] for r in rows[-24:-4]) / 20.0 if len(rows) >= 24 else ma20
         ma60 = sum(r['close'] for r in rows[-60:]) / len(rows[-60:]) if len(rows) >= 60 else None
         disp5_pct = round(((today_close - ma5) / ma5) * 100.0, 2) if ma5 > 0 else 0.0
 
@@ -618,6 +620,8 @@ def analyze_support_resistance(code: str, name: str) -> dict:
             'sr_score': sr_score,
             'rvol': rvol,
             'ma5': ma5,
+            'ma20': ma20,
+            'ma20_prev': ma20_prev,
             'disp5_pct': disp5_pct,
             'tags': tags
         }
@@ -1000,6 +1004,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'code': code,
                 'name': name,
                 'market': market,
+                'sector': stock_sec,
                 'price': int(close_p),
                 'change_pct': round(change_pct, 2),
                 'amount_eok': int(amount_eok),
@@ -1029,6 +1034,23 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             })
 
     closing_picks.sort(key=lambda x: x['score'], reverse=True)
+    # [동일 섹터 쏠림 분산] 1·2등이 같은 섹터에 몰릴 경우 80점+ 타 섹터 최고점 후보를 2번 슬롯에 우선 배치
+    if len(closing_picks) >= 3:
+        top_sec = closing_picks[0].get('sector', '')
+        second_sec = closing_picks[1].get('sector', '')
+        generic_secs = ('', '주도주', '기타')
+        if top_sec not in generic_secs and top_sec == second_sec:
+            for alt_idx in range(2, len(closing_picks)):
+                alt_sec = closing_picks[alt_idx].get('sector', '')
+                if alt_sec not in generic_secs and alt_sec != top_sec:
+                    alt_pick = closing_picks.pop(alt_idx)
+                    alt_pick['reason'] = f"{alt_pick.get('reason', '')} · 섹터 분산 우선 배치({top_sec} 중복 회피)"
+                    closing_picks.insert(1, alt_pick)
+                    logger.info(
+                        f"[종가베팅 섹터 분산] {closing_picks[0]['name']}({top_sec}) 중복 회피 ➔ "
+                        f"2번 슬롯 {alt_pick['name']}({alt_sec}, {alt_pick['score']}점) 우선 배치"
+                    )
+                    break
     closing_picks = closing_picks[:3]
 
     # =========================================================================
@@ -1055,103 +1077,154 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         (common['Close'] >= common['Open'])    # 당일 시가 대비 양봉 확인
     ].copy()
 
-    # 거래대금 상위 45개 정예 후보로 압축해 속도 최적화 (GitHub Actions 15:10 지연 방지)
+    # 거래대금 상위 45개 정예 후보로 압축 후 ThreadPoolExecutor(6스레드) 병렬 고속 분석 (네이버 fchart + FDR 폴백)
     swing_pool = swing_pool.sort_values(by='Amount', ascending=False).head(45)
+    start_date_swing = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
 
-    for _, row in swing_pool.iterrows():
-        code = str(row['Code'])
+    def _evaluate_swing_candidate(row_dict: dict):
+        code = str(row_dict['Code'])
         if code in closing_picked_codes:
-            continue
-        name = str(row['Name'])
-        market = str(row['Market'])
-        close_p = float(row['Close'])
-        high_p = float(row['High'])
-        low_p = float(row['Low'])
+            return None
+        name = str(row_dict['Name'])
+        market = str(row_dict['Market'])
+        close_p = float(row_dict['Close'])
+        high_p = float(row_dict['High'])
+        low_p = float(row_dict['Low'])
         if high_p > low_p and ((high_p - close_p) / (high_p - low_p)) > 0.42:
-            continue
-        amount_eok = float(row['Amount']) / 1e8
-        change_pct = float(row['ChagesRatio'])
-        marcap = float(row['Marcap']) if 'Marcap' in row and pd.notnull(row['Marcap']) else 0
+            return None
+        amount_eok = float(row_dict['Amount']) / 1e8
+        change_pct = float(row_dict['ChagesRatio'])
+        marcap = float(row_dict['Marcap']) if 'Marcap' in row_dict and pd.notnull(row_dict['Marcap']) else 0
         marcap_str = format_marcap(marcap)
 
         try:
-            start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
-            df = fdr.DataReader(code, start=start_date)
-            if len(df) < 25:
-                continue
-            closes = df['Close'].values[-25:]
-            ma5 = float(pd.Series(closes).rolling(5).mean().values[-1])
-            ma20 = float(pd.Series(closes).rolling(20).mean().values[-1])
-            ma20_prev = float(pd.Series(closes).rolling(20).mean().values[-5])
+            # 1) 네이버 일봉 fchart 우선 조회 + 머리 위 2.5% 저항선 충돌·역배열 일괄 차단
+            sr = analyze_support_resistance(code, name)
+            if sr is not None and not sr.get('is_valid', True):
+                logger.info(f"[스윙 필터 탈락] {name}({code}): {sr.get('reject_reason')}")
+                return None
+
+            if sr is not None and sr.get('ma20') and sr.get('ma20_prev'):
+                ma5 = float(sr['ma5'])
+                ma20 = float(sr['ma20'])
+                ma20_prev = float(sr['ma20_prev'])
+            else:
+                df = fdr.DataReader(code, start=start_date_swing)
+                if len(df) < 25:
+                    return None
+                closes = df['Close'].values[-25:]
+                ma5 = float(pd.Series(closes).rolling(5).mean().values[-1])
+                ma20 = float(pd.Series(closes).rolling(20).mean().values[-1])
+                ma20_prev = float(pd.Series(closes).rolling(20).mean().values[-5])
 
             # 20일선 우상향 & 5일선-20일선 정배열
             is_uptrend = ma20 >= ma20_prev
             is_golden = ma5 >= ma20 * 0.995
-            # 주가가 20일선 위에 안착하고 5% 이내 위치
             dist_ma20 = (close_p - ma20) / close_p * 100
             is_near_ma20 = (close_p >= ma20) and (dist_ma20 <= 5.0)
+            if not (is_uptrend and is_golden and is_near_ma20):
+                return None
 
-            if is_uptrend and is_golden and is_near_ma20:
-                major_flow = fetch_stock_major_flow(code)
-                if major_flow.get('toxic_disclosure'):
-                    logger.warning(f"[스윙 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
-                    continue
+            # 2) 장중 분봉 미시구조 분석: 오전 고점 후 오후 VWAP 하회 설거지 패턴 차단
+            micro = analyze_intraday_microstructure(code, close_p)
+            if micro and micro.get('is_morning_dump'):
+                logger.info(f"[스윙 필터 탈락] {name}({code}): 오전 고점({micro.get('peak_time')}) 후 VWAP 하회 설거지 패턴")
+                return None
 
-                score = 65.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
-                reasons = [f"20일선({int(ma20):,}원) 눌림목 지지", f"이격도 {dist_ma20:.1f}% 안정 구간"]
-                tags = ['20일선눌림목', '추세우상향', '안정적손익비']
+            # 3) 최근 3일 외인·기관 수급 및 희석 악재 공시 차단
+            major_flow = fetch_stock_major_flow(code)
+            if major_flow.get('toxic_disclosure'):
+                logger.warning(f"[스윙 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
+                return None
 
-                if major_flow.get('is_dual_buy'):
-                    score += 5.0
-                    reasons.append("🏦외인·기관 쌍끌이 매수(+5점)")
-                    tags.append("쌍끌이수급")
-                elif major_flow.get('is_organ_accum'):
-                    score += 2.0
-                    reasons.append("🏦기관 연속 순매수(+2점)")
-                elif major_flow.get('is_major_dump'):
-                    score -= 5.0
-                    reasons.append("⚠️외인·기관 동시 순매도(-5점)")
+            score = 65.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
+            reasons = [f"20일선({int(ma20):,}원) 눌림목 지지", f"이격도 {dist_ma20:.1f}% 안정 구간"]
+            tags = ['20일선눌림목', '추세우상향', '안정적손익비']
 
-                if code in catalyst_codes:
-                    score += 12.0
-                    reasons.append("실적/호재 공시 연계")
-                    tags.append("실적모멘텀")
+            if sr:
+                if sr.get('is_60_breakout'):
+                    score += 15.0
+                    reasons.append(sr.get('status', '60일 신고가 돌파'))
+                    tags.extend(sr.get('tags', []))
+                elif sr.get('is_20_breakout'):
+                    score += 10.0
+                    reasons.append(sr.get('status', '20일 박스권 상단 돌파'))
+                    tags.extend(sr.get('tags', []))
 
-                score = max(0.0, score)
-                # AI 점수 80점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
-                if score < 80.0:
-                    continue
+            if micro and micro.get('vwap_diff_pct', -1.0) >= 0:
+                score += 3.0
+                reasons.append(f"당일 VWAP 상회(+{micro['vwap_diff_pct']:.1f}%)")
 
-                stg = resolve_swing_targets(close_p, regime=regime, market_context=market_context)
-                swing_picks.append({
-                    'code': code,
-                    'name': name,
-                    'market': market,
-                    'price': int(close_p),
-                    'change_pct': round(change_pct, 2),
-                    'amount_eok': int(amount_eok),
-                    'swing_mode': stg['mode'],
-                    'swing_mode_label': stg['mode_label'],
-                    'swing_mode_desc': stg['mode_desc'],
-                    'target_1': stg['target_1'],
-                    'target_1_pct': stg['target_1_pct'],
-                    'target_2': stg['target_2'],
-                    'target_2_pct': stg['target_2_pct'],
-                    'target_3': stg['target_3'],
-                    'target_3_pct': stg['target_3_pct'],
-                    'stop_loss': stg['stop_loss'],
-                    'stop_loss_pct': stg['stop_loss_pct'],
-                    'holding_period': stg['holding_period'],
-                    'score': int(min(score, 98)),
-                    'reason': " · ".join(reasons),
-                    'tags': tags,
-                    'marcap': int(marcap),
-                    'marcap_str': marcap_str
-                })
-        except Exception:
-            continue
+            if major_flow.get('is_dual_buy'):
+                score += 5.0
+                reasons.append("🏦외인·기관 쌍끌이 매수(+5점)")
+                tags.append("쌍끌이수급")
+            elif major_flow.get('is_organ_accum'):
+                score += 2.0
+                reasons.append("🏦기관 연속 순매수(+2점)")
+            elif major_flow.get('is_major_dump'):
+                score -= 5.0
+                reasons.append("⚠️외인·기관 동시 순매도(-5점)")
 
-    swing_picks.sort(key=lambda x: x['score'], reverse=True)
+            if code in catalyst_codes:
+                score += 12.0
+                reasons.append("실적/호재 공시 연계")
+                tags.append("실적모멘텀")
+
+            score = max(0.0, score)
+            # AI 점수 80점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
+            if score < 80.0:
+                return None
+
+            stg = resolve_swing_targets(close_p, regime=regime, market_context=market_context)
+            return {
+                'code': code,
+                'name': name,
+                'market': market,
+                'price': int(close_p),
+                'change_pct': round(change_pct, 2),
+                'amount_eok': int(amount_eok),
+                'swing_mode': stg['mode'],
+                'swing_mode_label': stg['mode_label'],
+                'swing_mode_desc': stg['mode_desc'],
+                'target_1': stg['target_1'],
+                'target_1_pct': stg['target_1_pct'],
+                'target_2': stg['target_2'],
+                'target_2_pct': stg['target_2_pct'],
+                'target_3': stg['target_3'],
+                'target_3_pct': stg['target_3_pct'],
+                'stop_loss': stg['stop_loss'],
+                'stop_loss_pct': stg['stop_loss_pct'],
+                'holding_period': stg['holding_period'],
+                'score': int(min(score, 98)),
+                'reason': " · ".join(reasons),
+                'tags': list(dict.fromkeys(tags)),
+                'sr_status': sr.get('status', '') if sr else '',
+                'support_price': sr.get('support_price', int(ma20)) if sr else int(ma20),
+                'next_resistance': sr.get('next_res', '') if sr else '',
+                'room_pct': sr.get('room_pct', 5.0) if sr else 5.0,
+                'vwap': micro.get('vwap') if micro else int(close_p * 0.99),
+                'vwap_diff_pct': micro.get('vwap_diff_pct', 0.0) if micro else 0.0,
+                'marcap': int(marcap),
+                'marcap_str': marcap_str
+            }
+        except Exception as e:
+            logger.debug(f"스윙 후보 분석 예외({code}): {e}")
+            return None
+
+    swing_rows = swing_pool.to_dict('records')
+    if swing_rows:
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = [executor.submit(_evaluate_swing_candidate, r) for r in swing_rows]
+            for fut in as_completed(futures):
+                try:
+                    picked = fut.result()
+                    if picked:
+                        swing_picks.append(picked)
+                except Exception as e:
+                    logger.debug(f"스윙 스레드 결과 처리 예외: {e}")
+
+    swing_picks.sort(key=lambda x: (x['score'], x.get('amount_eok', 0)), reverse=True)
     swing_picks = swing_picks[:3]
 
     # =========================================================================
@@ -1237,26 +1310,26 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
 
         import requests
         import xml.etree.ElementTree as ET
-        for _, row in pb_pool.iterrows():
-            code = str(row['Code'])
-            name = str(row['Name'])
-            market = str(row['Market'])
-            close_p = float(row['Close'])
-            amount_eok = float(row['Amount']) / 1e8
-            change_pct = float(row['ChagesRatio'])
-            marcap = float(row['Marcap']) if 'Marcap' in row and pd.notnull(row['Marcap']) else 0
-            marcap_str = format_marcap(marcap)
 
+        def _eval_pb_candidate(row_dict):
+            code = str(row_dict['Code'])
+            name = str(row_dict['Name'])
+            market = str(row_dict['Market'])
+            close_p = float(row_dict['Close'])
+            amount_eok = float(row_dict['Amount']) / 1e8
+            change_pct = float(row_dict['ChagesRatio'])
+            marcap = float(row_dict['Marcap']) if 'Marcap' in row_dict and pd.notnull(row_dict['Marcap']) else 0
+            marcap_str = format_marcap(marcap)
             try:
                 url = f"https://fchart.stock.naver.com/sise.nhn?symbol={code}&timeframe=day&count=30&requestType=0"
-                r = requests.get(url, timeout=3)
+                r = requests.get(url, timeout=2.5)
                 if r.status_code != 200 or not r.text:
-                    continue
+                    return None
                 cleaned = re.sub(r'<\?xml[^>]*\?>', '', r.text).strip()
                 root = ET.fromstring(cleaned)
                 items = root.findall('.//item')
                 if len(items) < 22:
-                    continue
+                    return None
                 rows = []
                 for it in items:
                     p = it.attrib['data'].split('|')
@@ -1268,7 +1341,6 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 ma5 = sum(x['close'] for x in rows[-5:]) / 5.0
                 avg_20_vol = sum(x['vol'] for x in rows[-21:-1]) / 20.0
 
-                # 직전 2~7영업일 내 기준봉(등락률 +12% 이상 & 거래량 20일 평균의 2배 이상) 탐색
                 found_base = None
                 days_ago = 0
                 for idx in range(len(rows) - 2, max(len(rows) - 8, 1), -1):
@@ -1282,7 +1354,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                         break
 
                 if not found_base:
-                    continue
+                    return None
 
                 base_bar, base_gain, days_ago = found_base
                 base_mid = (base_bar['open'] + base_bar['close']) / 2.0
@@ -1290,11 +1362,10 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 dist_ma5 = abs(close_p - ma5) / close_p * 100
                 dist_mid = abs(close_p - base_mid) / close_p * 100
 
-                # 조건: 1) 기준봉 시가 위 지지, 2) 5일선 또는 기준봉 중심선 부근(4.5% 이내), 3) 거래량이 기준봉 대비 65% 이하로 수축(숨고르기)
                 if close_p >= base_bar['open'] * 0.99 and (dist_ma5 <= 4.5 or dist_mid <= 4.5) and vol_ratio <= 65.0:
                     pb_score = 88 + int(max(0, (65.0 - vol_ratio) * 0.15))
                     support_line = int(round(max(base_bar['open'], min(ma5, base_mid))))
-                    pullback_picks.append({
+                    return {
                         'code': code,
                         'name': name,
                         'market': market,
@@ -1318,11 +1389,19 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                         'marcap_str': marcap_str,
                         'rvol': round(today_r['vol'] / max(avg_20_vol, 1), 2),
                         'turnover_pct': round((amount_eok / (marcap / 1e8)) * 100, 2) if marcap > 0 else 0.0,
-                    })
-                    if len(pullback_picks) >= 3:
-                        break
+                    }
             except Exception:
-                continue
+                return None
+            return None
+
+        pb_rows = pb_pool.to_dict('records')
+        if pb_rows:
+            with ThreadPoolExecutor(max_workers=6) as executor:
+                for res_pb in executor.map(_eval_pb_candidate, pb_rows):
+                    if res_pb:
+                        pullback_picks.append(res_pb)
+            pullback_picks.sort(key=lambda x: x['score'], reverse=True)
+            pullback_picks = pullback_picks[:3]
     except Exception as e:
         logger.debug(f"기준봉 눌림목 스캔 예외: {e}")
 
