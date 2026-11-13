@@ -281,3 +281,4 @@ def render_calendar_dashboard_html(event_intel: dict) -> str:
         {expo_section_html}
     </div>
     """
+
