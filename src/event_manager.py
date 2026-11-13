@@ -8,6 +8,7 @@ BiniStock 주요일정 & 이벤트 인텔리전스 엔진 (src/event_manager.py)
 """
 import os
 import json
+import html
 import logging
 from datetime import datetime, date, timedelta, timezone
 
@@ -248,6 +249,7 @@ def extract_burn_catalysts(ref_date: date = None) -> list:
                 except Exception:
                     pass
 
+            corp_name = html.unescape(corp_name).strip() if corp_name else ""
             if corp_name and 0 < ratio_pct <= 50.0:  # 50% 초과는 무상감자/합병 등 이상치 배제
                 # 점수 가산점 환산: 7% 이상(+10점), 5% 이상(+7점), 3% 이상(+4점)
                 boost = 10 if ratio_pct >= 7.0 else (7 if ratio_pct >= 5.0 else (4 if ratio_pct >= 3.0 else 0))
