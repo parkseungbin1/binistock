@@ -1725,6 +1725,14 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 _reasons.append("DART 공시 호재(+10점)")
                 _tags.append("실적/공시호재")
 
+            _ev_info = event_boost_map.get(_name) or event_boost_map.get(_code)
+            if _ev_info:
+                _b_score = _ev_info.get('boost_score', 0)
+                if _b_score > 0:
+                    _score += _b_score
+                    _reasons.append(f"🎯{_ev_info.get('tag')} (+{_b_score}점)")
+                    _tags.append("D-Day호재모멘텀")
+
             if _major_flow.get('toxic_disclosure'):
                 _score = min(_score, 74.0)
             elif _head_ratio > 0.38:
