@@ -763,12 +763,12 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/455890/total",
-          "highest_price": 55870,
+          "highest_price": 55875,
           "lowest_price": 55850,
-          "max_return_pct": 0.04,
-          "status": "진행중 (2일차)",
+          "max_return_pct": 0.05,
+          "status": "진행중 (3일차)",
           "completed": false,
-          "holding_days": 2
+          "holding_days": 3
         }
       ],
       "evaluated": false
@@ -854,12 +854,12 @@
             "쌍끌이수급"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/036460/total",
-          "highest_price": 38500,
-          "lowest_price": 38500,
-          "max_return_pct": 0.0,
-          "status": "진행중",
+          "highest_price": 39000,
+          "lowest_price": 38400,
+          "max_return_pct": 1.3,
+          "status": "진행중 (1일차)",
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1
         }
       ],
       "evaluated": false
