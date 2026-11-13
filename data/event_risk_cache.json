@@ -1,0 +1,267 @@
+{
+  "updated_at": "2026-11-13 09:04:53",
+  "overnight_risk": {
+    "score": 20,
+    "level": "YELLOW",
+    "recommendation": "BLOCK_BETTING",
+    "status_message": "주말 65시간 미대응 리스크 방어 (100% 현금 보존 권장)",
+    "is_friday": true,
+    "detected_events": []
+  },
+  "derivatives": {
+    "next_kr": {
+      "type": "KR_QUADRUPLE",
+      "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
+      "date": "2026-12-10",
+      "d_day": 27,
+      "is_quadruple": true,
+      "country": "한국"
+    },
+    "next_quadruple": {
+      "type": "KR_QUADRUPLE",
+      "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
+      "date": "2026-12-10",
+      "d_day": 27,
+      "is_quadruple": true,
+      "country": "한국"
+    },
+    "all_upcoming": [
+      {
+        "type": "US_OPTION",
+        "name": "미국 옵션만기일",
+        "date": "2026-11-20",
+        "d_day": 7,
+        "is_quadruple": false,
+        "country": "미국"
+      },
+      {
+        "type": "KR_QUADRUPLE",
+        "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
+        "date": "2026-12-10",
+        "d_day": 27,
+        "is_quadruple": true,
+        "country": "한국"
+      },
+      {
+        "type": "US_QUADRUPLE",
+        "name": "미국 선물·옵션 동시만기일",
+        "date": "2026-12-18",
+        "d_day": 35,
+        "is_quadruple": true,
+        "country": "미국"
+      },
+      {
+        "type": "KR_OPTION",
+        "name": "국내 옵션만기일",
+        "date": "2027-01-14",
+        "d_day": 62,
+        "is_quadruple": false,
+        "country": "한국"
+      }
+    ]
+  },
+  "upcoming_catalysts": [
+    {
+      "category": "EXPO_CONFERENCE",
+      "title": "지스타 (G-STAR 국제게임전시회)",
+      "date": "2026-11-19",
+      "d_day": 6,
+      "impact": "MEDIUM",
+      "is_catalyst": true,
+      "is_risk": false,
+      "sectors": [
+        "게임",
+        "엔터테인먼트",
+        "메타버스"
+      ],
+      "description": "국내 최대 국제게임전시회, 대작 신작 출시 라인업 공개"
+    },
+    {
+      "category": "MSCI_REBALANCING",
+      "title": "MSCI 11월 반기 리뷰 리밸런싱",
+      "date": "2026-11-25",
+      "d_day": 12,
+      "impact": "ULTRA_HIGH",
+      "is_catalyst": true,
+      "is_risk": false,
+      "sectors": [
+        "대형주",
+        "패시브수혜주"
+      ]
+    },
+    {
+      "category": "BOK_RATE",
+      "title": "한국은행 금융통화위원회 기준금리 결정",
+      "date": "2026-11-26",
+      "d_day": 13,
+      "impact": "HIGH",
+      "is_catalyst": false,
+      "is_risk": true,
+      "sectors": [
+        "금융",
+        "증권",
+        "건설"
+      ]
+    }
+  ],
+  "burn_catalysts": [
+    {
+      "corp_name": "NICE",
+      "ratio_pct": 7.45,
+      "burn_date": "2026-11-27",
+      "d_day": 14,
+      "boost_score": 10,
+      "tag": "🔥 시총 7.45% 소각 예정 (D-14)"
+    },
+    {
+      "corp_name": "한진",
+      "ratio_pct": 6.12,
+      "burn_date": "2026-11-30",
+      "d_day": 17,
+      "boost_score": 7,
+      "tag": "🔥 시총 6.12% 소각 예정 (D-17)"
+    },
+    {
+      "corp_name": "신도리코",
+      "ratio_pct": 6.03,
+      "burn_date": "2026-11-25",
+      "d_day": 12,
+      "boost_score": 7,
+      "tag": "🔥 시총 6.03% 소각 예정 (D-12)"
+    },
+    {
+      "corp_name": "다산네트웍스",
+      "ratio_pct": 5.81,
+      "burn_date": "2026-11-20",
+      "d_day": 7,
+      "boost_score": 7,
+      "tag": "🔥 시총 5.81% 소각 예정 (D-7)"
+    },
+    {
+      "corp_name": "위메이드맥스",
+      "ratio_pct": 2.64,
+      "burn_date": "2026-11-18",
+      "d_day": 5,
+      "boost_score": 0,
+      "tag": "🔥 시총 2.64% 소각 예정 (D-5)"
+    },
+    {
+      "corp_name": "F&amp;F",
+      "ratio_pct": 2.55,
+      "burn_date": "2026-11-30",
+      "d_day": 17,
+      "boost_score": 0,
+      "tag": "🔥 시총 2.55% 소각 예정 (D-17)"
+    },
+    {
+      "corp_name": "흥국",
+      "ratio_pct": 1.85,
+      "burn_date": "2026-11-24",
+      "d_day": 11,
+      "boost_score": 0,
+      "tag": "🔥 시총 1.85% 소각 예정 (D-11)"
+    },
+    {
+      "corp_name": "인카금융서비스",
+      "ratio_pct": 1.14,
+      "burn_date": "2026-11-19",
+      "d_day": 6,
+      "boost_score": 0,
+      "tag": "🔥 시총 1.14% 소각 예정 (D-6)"
+    },
+    {
+      "corp_name": "시프트업",
+      "ratio_pct": 0.56,
+      "burn_date": "2026-11-27",
+      "d_day": 14,
+      "boost_score": 0,
+      "tag": "🔥 시총 0.56% 소각 예정 (D-14)"
+    },
+    {
+      "corp_name": "나노신소재",
+      "ratio_pct": 0.19,
+      "burn_date": "2026-11-26",
+      "d_day": 13,
+      "boost_score": 0,
+      "tag": "🔥 시총 0.19% 소각 예정 (D-13)"
+    },
+    {
+      "corp_name": "한화머시너리앤서비스홀딩스",
+      "ratio_pct": 0.06,
+      "burn_date": "2026-11-24",
+      "d_day": 11,
+      "boost_score": 0,
+      "tag": "🔥 시총 0.06% 소각 예정 (D-11)"
+    },
+    {
+      "corp_name": "한화",
+      "ratio_pct": 0.01,
+      "burn_date": "2026-11-18</div>\n        </div>",
+      "d_day": null,
+      "boost_score": 0,
+      "tag": "🔥 시총 0.01% 소각 예정 (D-?)"
+    }
+  ],
+  "stock_boost_map": {
+    "NICE": {
+      "boost_score": 10,
+      "tag": "🔥 시총 7.45% 소각 예정 (D-14)",
+      "reason": "자사주 시총 7.45% 영구소각 호재"
+    },
+    "한진": {
+      "boost_score": 7,
+      "tag": "🔥 시총 6.12% 소각 예정 (D-17)",
+      "reason": "자사주 시총 6.12% 영구소각 호재"
+    },
+    "신도리코": {
+      "boost_score": 7,
+      "tag": "🔥 시총 6.03% 소각 예정 (D-12)",
+      "reason": "자사주 시총 6.03% 영구소각 호재"
+    },
+    "다산네트웍스": {
+      "boost_score": 7,
+      "tag": "🔥 시총 5.81% 소각 예정 (D-7)",
+      "reason": "자사주 시총 5.81% 영구소각 호재"
+    },
+    "위메이드맥스": {
+      "boost_score": 0,
+      "tag": "🔥 시총 2.64% 소각 예정 (D-5)",
+      "reason": "자사주 시총 2.64% 영구소각 호재"
+    },
+    "F&amp;F": {
+      "boost_score": 0,
+      "tag": "🔥 시총 2.55% 소각 예정 (D-17)",
+      "reason": "자사주 시총 2.55% 영구소각 호재"
+    },
+    "흥국": {
+      "boost_score": 0,
+      "tag": "🔥 시총 1.85% 소각 예정 (D-11)",
+      "reason": "자사주 시총 1.85% 영구소각 호재"
+    },
+    "인카금융서비스": {
+      "boost_score": 0,
+      "tag": "🔥 시총 1.14% 소각 예정 (D-6)",
+      "reason": "자사주 시총 1.14% 영구소각 호재"
+    },
+    "시프트업": {
+      "boost_score": 0,
+      "tag": "🔥 시총 0.56% 소각 예정 (D-14)",
+      "reason": "자사주 시총 0.56% 영구소각 호재"
+    },
+    "나노신소재": {
+      "boost_score": 0,
+      "tag": "🔥 시총 0.19% 소각 예정 (D-13)",
+      "reason": "자사주 시총 0.19% 영구소각 호재"
+    },
+    "한화머시너리앤서비스홀딩스": {
+      "boost_score": 0,
+      "tag": "🔥 시총 0.06% 소각 예정 (D-11)",
+      "reason": "자사주 시총 0.06% 영구소각 호재"
+    },
+    "한화": {
+      "boost_score": 0,
+      "tag": "🔥 시총 0.01% 소각 예정 (D-?)",
+      "reason": "자사주 시총 0.01% 영구소각 호재"
+    }
+  }
+}

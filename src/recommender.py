@@ -795,6 +795,19 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             if c:
                 catalyst_codes.add(c)
 
+    # [신규] BiniStock 주요일정 & D-Day 호재 인텔리전스 (시총 대비 소각 비중 % 등)
+    event_boost_map = {}
+    event_intel = {}
+    try:
+        try:
+            from src.event_manager import build_and_save_event_intelligence
+        except ImportError:
+            from event_manager import build_and_save_event_intelligence
+        event_intel = build_and_save_event_intelligence()
+        event_boost_map = event_intel.get("stock_boost_map", {})
+    except Exception as e:
+        logger.debug(f"이벤트 인텔리전스 연동 예외: {e}")
+
     # =========================================================================
     # Track 1: 🎯 오늘 15:10 종가베팅 (오버나잇)
     # =========================================================================
@@ -1026,6 +1039,14 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 reasons.append("DART 공시 호재 포착")
                 tags.append("실적/공시호재")
 
+            ev_info = event_boost_map.get(name) or event_boost_map.get(code)
+            if ev_info:
+                b_score = ev_info.get('boost_score', 0)
+                if b_score > 0:
+                    score += b_score
+                    reasons.append(f"🎯{ev_info.get('tag')} (+{b_score}점)")
+                    tags.append("D-Day호재모멘텀")
+
             score = max(0.0, score)
             # AI 종합 점수 80점 미만인 어중간한 종목은 원천 배제 (조건 미달 시 무포지션 100% 현금 보존)
             if score < 80.0:
@@ -1202,6 +1223,14 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 score += 12.0
                 reasons.append("실적/호재 공시 연계")
                 tags.append("실적모멘텀")
+
+            ev_info = event_boost_map.get(name) or event_boost_map.get(code)
+            if ev_info:
+                b_score = ev_info.get('boost_score', 0)
+                if b_score > 0:
+                    score += b_score
+                    reasons.append(f"🎯{ev_info.get('tag')} (+{b_score}점)")
+                    tags.append("D-Day호재모멘텀")
 
             score = max(0.0, score)
             # AI 점수 80점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
@@ -1790,6 +1819,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         'condition_meta': condition_meta,
         'hot_sectors': hot_sectors,
         'breadth_pct': breadth_pct,
+        'event_intelligence': event_intel,
     }
     _RECOMMENDATIONS_CACHE = res
     return res

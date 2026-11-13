@@ -132,6 +132,26 @@ def generate_html():
         print(f"시장 흐름 데이터 로드 실패: {e}")
         market_flow_html = '<div class="empty-card">시장 흐름 데이터를 불러오지 못했습니다.</div>'
 
+    # 2-Y. BiniStock 주요일정 & 모멘텀 레이더 데이터 로드 & HTML 렌더링
+    calendar_dashboard_html = ""
+    cal_tab_pill = "D-Day 일정 레이더"
+    try:
+        from src.calendar_view import render_calendar_dashboard_html
+        from src.event_manager import build_and_save_event_intelligence
+        event_intel = rec_data.get('event_intelligence') or build_and_save_event_intelligence()
+        calendar_dashboard_html = render_calendar_dashboard_html(event_intel)
+        if event_intel.get("overnight_risk", {}).get("is_friday"):
+            cal_tab_pill = "🛡️ 주말 리스크 방어"
+        elif event_intel.get("overnight_risk", {}).get("level") == "RED":
+            cal_tab_pill = "🚨 야간 폭탄 경보"
+        elif event_intel.get("overnight_risk", {}).get("level") == "YELLOW":
+            cal_tab_pill = "⚠️ 지표 주의 구간"
+        else:
+            cal_tab_pill = "🟢 안전 구간"
+    except Exception as e:
+        print(f"주요일정 대시보드 렌더링 실패: {e}")
+        calendar_dashboard_html = '<div class="empty-card">주요일정 데이터를 불러오지 못했습니다.</div>'
+
     # 2-2. AI 실시간 복합 리스크 스코어 계산 (0~100)
     breadth_val = rec_data.get('breadth_pct', 50.0) if isinstance(rec_data, dict) else 50.0
     kp_pb = 0.0
@@ -1721,6 +1741,18 @@ def generate_html():
             border-top: 3px solid #fb7185;
             box-shadow: 0 6px 20px rgba(244, 63, 94, 0.32);
         }}
+        .rec-tab.tab-teal {{ border-top-color: #14b8a6; }}
+        .rec-tab.tab-teal.active {{
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(13, 148, 136, 0.22));
+            border-color: #14b8a6;
+            border-top: 3px solid #2dd4bf;
+            box-shadow: 0 6px 20px rgba(20, 184, 166, 0.32);
+        }}
+        .pill-teal {{
+            background: rgba(20, 184, 166, 0.2);
+            color: #2dd4bf;
+            border-color: rgba(20, 184, 166, 0.4);
+        }}
 
         /* 실시간 머니플로우 전광판 (어웨이크형) 전용 CSS */
         .tmf-container {{
@@ -3291,6 +3323,10 @@ def generate_html():
             <span class="rec-tab-title">💸 실시간 머니플로우</span>
             <span class="rec-tag-pill" style="background:rgba(244,63,94,0.22); color:#fb7185; border-color:rgba(244,63,94,0.45);">🔥 오늘 돈 몰리는 곳</span>
         </button>
+        <button class="rec-tab tab-teal" onclick="switchRecTrack('calendar', this)">
+            <span class="rec-tab-title">📅 주요일정 & 모멘텀</span>
+            <span class="rec-tag-pill pill-teal">{cal_tab_pill}</span>
+        </button>
     </div>
 
     <!-- 시가총액 필터 바 -->
@@ -3716,6 +3752,11 @@ def generate_html():
         {market_flow_html}
     </div>
 
+    <!-- 2-8. 주요일정 & 모멘텀 레이더 탭 컨테이너 -->
+    <div id="rec-calendar-container" class="rec-container" style="display: none;">
+        {calendar_dashboard_html}
+    </div>
+
     <!-- 3. 실전 4대 종가베팅/매도 가이드 -->
     <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
         <span>⏱️ 실전 4대 트레이딩 라이프사이클 가이드</span>
@@ -3853,6 +3894,8 @@ def generate_html():
             if (pbEl) pbEl.style.display = (track === 'playbook') ? 'block' : 'none';
             const flowEl = document.getElementById('rec-flow-container');
             if (flowEl) flowEl.style.display = (track === 'flow') ? 'block' : 'none';
+            const calEl = document.getElementById('rec-calendar-container');
+            if (calEl) calEl.style.display = (track === 'calendar') ? 'block' : 'none';
         }}
 
         function filterFlowSectors(type, btn) {{
@@ -3879,6 +3922,9 @@ def generate_html():
         }} else if (window.location.hash === '#tab-condition') {{
             const condTab = document.querySelector('.rec-tab.tab-cyan');
             if (condTab) switchRecTrack('condition', condTab);
+        }} else if (window.location.hash === '#tab-calendar') {{
+            const calTab = document.querySelector('.rec-tab.tab-teal');
+            if (calTab) switchRecTrack('calendar', calTab);
         }}
 
         function filterPlaybook(cat, btn) {{

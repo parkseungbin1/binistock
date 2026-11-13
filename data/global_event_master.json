@@ -1,0 +1,104 @@
+{
+  "updated_at": "2026-11-13",
+  "bok_mpc_meetings": [
+    {"date": "2026-01-15", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2026-02-26", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2026-04-16", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2026-05-28", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2026-07-16", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2026-08-27", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2026-10-22", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2026-11-26", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2027-01-14", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"},
+    {"date": "2027-02-25", "name": "한국은행 금융통화위원회 기준금리 결정", "country": "한국"}
+  ],
+  "msci_rebalancing": [
+    {"announcement": "2026-02-11", "effective": "2026-02-27", "name": "MSCI 2월 분기 리뷰 리밸런싱"},
+    {"announcement": "2026-05-13", "effective": "2026-05-29", "name": "MSCI 5월 반기 리뷰 리밸런싱"},
+    {"announcement": "2026-08-12", "effective": "2026-08-28", "name": "MSCI 8월 분기 리뷰 리밸런싱"},
+    {"announcement": "2026-11-06", "effective": "2026-11-25", "name": "MSCI 11월 반기 리뷰 리밸런싱"},
+    {"announcement": "2027-02-10", "effective": "2027-02-26", "name": "MSCI 2월 분기 리뷰 리밸런싱"}
+  ],
+  "global_industry_expos": [
+    {
+      "name": "CES (국제전자제품박람회)",
+      "month": 1,
+      "approx_days": "01-06 ~ 01-10",
+      "sectors": ["AI", "로봇", "자율주행", "가전", "온디바이스AI"],
+      "impact": "HIGH",
+      "description": "글로벌 최대 IT 가전/모빌리티 전시회, 국내외 대기업 신기술 대거 공개"
+    },
+    {
+      "name": "세미콘 코리아 (Semicon Korea)",
+      "month": 2,
+      "approx_days": "02-05 ~ 02-07",
+      "sectors": ["반도체", "소부장", "HBM", "패키징"],
+      "impact": "HIGH",
+      "description": "국내 최대 반도체 재료 및 장비 전시회"
+    },
+    {
+      "name": "MWC (모바일 월드 콩그레스)",
+      "month": 2,
+      "approx_days": "02-23 ~ 02-26",
+      "sectors": ["통신", "5G/6G", "스마트폰", "네트워크AI"],
+      "impact": "MEDIUM",
+      "description": "세계 최대 이동통신 전시회"
+    },
+    {
+      "name": "인터배터리 (InterBattery)",
+      "month": 3,
+      "approx_days": "03-04 ~ 03-06",
+      "sectors": ["2차전지", "전고체배터리", "양극재", "음극재", "폐배터리"],
+      "impact": "HIGH",
+      "description": "국내 유일 배터리 전문 전시회, LG엔솔/삼성SDI/에코프로 등 참가"
+    },
+    {
+      "name": "엔비디아 GTC (AI 컨퍼런스)",
+      "month": 3,
+      "approx_days": "03-16 ~ 03-20",
+      "sectors": ["AI반도체", "HBM", "서버", "데이터센터"],
+      "impact": "WATCH",
+      "description": "엔비디아 연례 개발자 컨퍼런스 (경영진 변동성 및 수급 확인 필수)"
+    },
+    {
+      "name": "AACR (미국암연구학회)",
+      "month": 4,
+      "approx_days": "04-10 ~ 04-15",
+      "sectors": ["바이오", "항암제", "ADC", "신약개발"],
+      "impact": "HIGH",
+      "description": "세계 3대 암학회 중 하나, 초기 비임상/임상 1상 전임상 데이터 발표"
+    },
+    {
+      "name": "ASCO (미국임상종양학회)",
+      "month": 5,
+      "approx_days": "05-29 ~ 06-02",
+      "sectors": ["바이오", "면역항암제", "표적항암제", "임상2/3상"],
+      "impact": "HIGH",
+      "description": "글로벌 최대 임상 종양학회, 기술수출(L/O) 및 임상 핵심 결과 발표"
+    },
+    {
+      "name": "바이오 인터내셔널 컨벤션 (바이오USA)",
+      "month": 6,
+      "approx_days": "06-08 ~ 06-11",
+      "sectors": ["바이오", "CDMO", "위탁생산", "신약개발"],
+      "impact": "HIGH",
+      "description": "세계 최대 바이오 기술이전 및 파트너링 컨벤션"
+    },
+    {
+      "name": "로보월드 (RobotWorld)",
+      "month": 10,
+      "approx_days": "10-21 ~ 10-24",
+      "sectors": ["로봇", "협동로봇", "휴머노이드", "스마트팩토리"],
+      "impact": "HIGH",
+      "description": "국내 최대 로봇 전시회, 산업/물류/서비스 로봇 신제품 시연"
+    },
+    {
+      "name": "지스타 (G-STAR 국제게임전시회)",
+      "month": 11,
+      "approx_days": "11-19 ~ 11-22",
+      "sectors": ["게임", "엔터테인먼트", "메타버스"],
+      "impact": "MEDIUM",
+      "description": "국내 최대 국제게임전시회, 대작 신작 출시 라인업 공개"
+    }
+  ]
+}
