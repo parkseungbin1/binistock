@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-11-13 23:51:41",
+  "updated_at": "2026-11-14 03:01:06",
   "overnight_risk": {
-    "score": 20,
-    "level": "YELLOW",
-    "recommendation": "BLOCK_BETTING",
-    "status_message": "주말 65시간 미대응 리스크 방어 (100% 현금 보존 권장)",
-    "is_friday": true,
+    "score": 0,
+    "level": "GREEN",
+    "recommendation": "NORMAL_BETTING",
+    "status_message": "오늘 밤 위험 경제지표 없음 ➔ 정상 오버나잇 베팅 허용",
+    "is_friday": false,
     "detected_events": []
   },
   "derivatives": {
@@ -13,7 +13,7 @@
       "type": "KR_QUADRUPLE",
       "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
       "date": "2026-12-10",
-      "d_day": 27,
+      "d_day": 26,
       "is_quadruple": true,
       "country": "한국"
     },
@@ -21,7 +21,7 @@
       "type": "KR_QUADRUPLE",
       "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
       "date": "2026-12-10",
-      "d_day": 27,
+      "d_day": 26,
       "is_quadruple": true,
       "country": "한국"
     },
@@ -30,7 +30,7 @@
         "type": "US_OPTION",
         "name": "미국 옵션만기일",
         "date": "2026-11-20",
-        "d_day": 7,
+        "d_day": 6,
         "is_quadruple": false,
         "country": "미국"
       },
@@ -38,7 +38,7 @@
         "type": "KR_QUADRUPLE",
         "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
         "date": "2026-12-10",
-        "d_day": 27,
+        "d_day": 26,
         "is_quadruple": true,
         "country": "한국"
       },
@@ -46,7 +46,7 @@
         "type": "US_QUADRUPLE",
         "name": "미국 선물·옵션 동시만기일",
         "date": "2026-12-18",
-        "d_day": 35,
+        "d_day": 34,
         "is_quadruple": true,
         "country": "미국"
       },
@@ -54,7 +54,7 @@
         "type": "KR_OPTION",
         "name": "국내 옵션만기일",
         "date": "2027-01-14",
-        "d_day": 62,
+        "d_day": 61,
         "is_quadruple": false,
         "country": "한국"
       }
@@ -65,7 +65,7 @@
       "category": "EXPO_CONFERENCE",
       "title": "지스타 (G-STAR 국제게임전시회)",
       "date": "2026-11-19",
-      "d_day": 6,
+      "d_day": 5,
       "impact": "MEDIUM",
       "is_catalyst": true,
       "is_risk": false,
@@ -80,7 +80,7 @@
       "category": "MSCI_REBALANCING",
       "title": "MSCI 11월 반기 리뷰 리밸런싱",
       "date": "2026-11-25",
-      "d_day": 12,
+      "d_day": 11,
       "impact": "ULTRA_HIGH",
       "is_catalyst": true,
       "is_risk": false,
@@ -93,7 +93,7 @@
       "category": "BOK_RATE",
       "title": "한국은행 금융통화위원회 기준금리 결정",
       "date": "2026-11-26",
-      "d_day": 13,
+      "d_day": 12,
       "impact": "HIGH",
       "is_catalyst": false,
       "is_risk": true,
@@ -109,81 +109,73 @@
       "corp_name": "NICE",
       "ratio_pct": 7.45,
       "burn_date": "2026-11-27",
-      "d_day": 14,
+      "d_day": 13,
       "boost_score": 10,
-      "tag": "🔥 시총 7.45% 소각 예정 (D-14)"
-    },
-    {
-      "corp_name": "신도리코",
-      "ratio_pct": 6.03,
-      "burn_date": "2026-11-25",
-      "d_day": 12,
-      "boost_score": 7,
-      "tag": "🔥 시총 6.03% 소각 예정 (D-12)"
+      "tag": "🔥 시총 7.45% 소각 예정 (D-13)"
     },
     {
       "corp_name": "다산네트웍스",
       "ratio_pct": 5.81,
       "burn_date": "2026-11-20",
-      "d_day": 7,
+      "d_day": 6,
       "boost_score": 7,
-      "tag": "🔥 시총 5.81% 소각 예정 (D-7)"
+      "tag": "🔥 시총 5.81% 소각 예정 (D-6)"
     },
     {
       "corp_name": "더즌",
       "ratio_pct": 2.45,
       "burn_date": "2026-11-18",
-      "d_day": 5,
+      "d_day": 4,
       "boost_score": 0,
-      "tag": "🔥 시총 2.45% 소각 예정 (D-5)"
+      "tag": "🔥 시총 2.45% 소각 예정 (D-4)"
     },
     {
       "corp_name": "동성케미컬",
       "ratio_pct": 2.43,
       "burn_date": "2026-11-30",
-      "d_day": 17,
+      "d_day": 16,
       "boost_score": 0,
-      "tag": "🔥 시총 2.43% 소각 예정 (D-17)"
+      "tag": "🔥 시총 2.43% 소각 예정 (D-16)"
     },
     {
       "corp_name": "원텍",
       "ratio_pct": 2.36,
       "burn_date": "2026-11-25",
-      "d_day": 12,
+      "d_day": 11,
       "boost_score": 0,
-      "tag": "🔥 시총 2.36% 소각 예정 (D-12)"
+      "tag": "🔥 시총 2.36% 소각 예정 (D-11)"
     },
     {
       "corp_name": "오뚜기",
       "ratio_pct": 1.35,
       "burn_date": "2026-12-02",
-      "d_day": 19,
+      "d_day": 18,
       "boost_score": 0,
-      "tag": "🔥 시총 1.35% 소각 예정 (D-19)"
+      "tag": "🔥 시총 1.35% 소각 예정 (D-18)"
     },
     {
       "corp_name": "나노신소재",
       "ratio_pct": 0.19,
       "burn_date": "2026-11-26",
-      "d_day": 13,
+      "d_day": 12,
       "boost_score": 0,
-      "tag": "🔥 시총 0.19% 소각 예정 (D-13)"
+      "tag": "🔥 시총 0.19% 소각 예정 (D-12)"
     },
     {
       "corp_name": "이지케어텍",
       "ratio_pct": 0.15,
       "burn_date": "2026-12-11",
-      "d_day": 28,
+      "d_day": 27,
       "boost_score": 0,
-      "tag": "🔥 시총 0.15% 소각 예정 (D-28)"
+      "tag": "🔥 시총 0.15% 소각 예정 (D-27)"
     },
     {
       "corp_name": "디아이동일",
       "ratio_pct": 0.03,
       "burn_date": "2026-11-30",
-      "d_day": 17,
+      "d_day": 16,
       "boost_score": 0,
-      "tag": "🔥 시총 0.03% 소각 예정 (D-17)"
+      "tag": "🔥 시총 0.03% 소각 예정 (D-16)"
     },
     {
       "corp_name": "한화",
@@ -197,52 +189,47 @@
   "stock_boost_map": {
     "NICE": {
       "boost_score": 10,
-      "tag": "🔥 시총 7.45% 소각 예정 (D-14)",
+      "tag": "🔥 시총 7.45% 소각 예정 (D-13)",
       "reason": "자사주 시총 7.45% 영구소각 호재"
-    },
-    "신도리코": {
-      "boost_score": 7,
-      "tag": "🔥 시총 6.03% 소각 예정 (D-12)",
-      "reason": "자사주 시총 6.03% 영구소각 호재"
     },
     "다산네트웍스": {
       "boost_score": 7,
-      "tag": "🔥 시총 5.81% 소각 예정 (D-7)",
+      "tag": "🔥 시총 5.81% 소각 예정 (D-6)",
       "reason": "자사주 시총 5.81% 영구소각 호재"
     },
     "더즌": {
       "boost_score": 0,
-      "tag": "🔥 시총 2.45% 소각 예정 (D-5)",
+      "tag": "🔥 시총 2.45% 소각 예정 (D-4)",
       "reason": "자사주 시총 2.45% 영구소각 호재"
     },
     "동성케미컬": {
       "boost_score": 0,
-      "tag": "🔥 시총 2.43% 소각 예정 (D-17)",
+      "tag": "🔥 시총 2.43% 소각 예정 (D-16)",
       "reason": "자사주 시총 2.43% 영구소각 호재"
     },
     "원텍": {
       "boost_score": 0,
-      "tag": "🔥 시총 2.36% 소각 예정 (D-12)",
+      "tag": "🔥 시총 2.36% 소각 예정 (D-11)",
       "reason": "자사주 시총 2.36% 영구소각 호재"
     },
     "오뚜기": {
       "boost_score": 0,
-      "tag": "🔥 시총 1.35% 소각 예정 (D-19)",
+      "tag": "🔥 시총 1.35% 소각 예정 (D-18)",
       "reason": "자사주 시총 1.35% 영구소각 호재"
     },
     "나노신소재": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.19% 소각 예정 (D-13)",
+      "tag": "🔥 시총 0.19% 소각 예정 (D-12)",
       "reason": "자사주 시총 0.19% 영구소각 호재"
     },
     "이지케어텍": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.15% 소각 예정 (D-28)",
+      "tag": "🔥 시총 0.15% 소각 예정 (D-27)",
       "reason": "자사주 시총 0.15% 영구소각 호재"
     },
     "디아이동일": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.03% 소각 예정 (D-17)",
+      "tag": "🔥 시총 0.03% 소각 예정 (D-16)",
       "reason": "자사주 시총 0.03% 영구소각 호재"
     },
     "한화": {
