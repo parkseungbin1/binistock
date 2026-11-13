@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-13 09:18:41",
+  "updated_at": "2026-11-13 09:29:03",
   "overnight_risk": {
     "score": 20,
     "level": "YELLOW",
@@ -146,7 +146,7 @@
       "tag": "🔥 시총 2.64% 소각 예정 (D-5)"
     },
     {
-      "corp_name": "F&amp;F",
+      "corp_name": "F&F",
       "ratio_pct": 2.55,
       "burn_date": "2026-11-30",
       "d_day": 17,
@@ -228,7 +228,7 @@
       "tag": "🔥 시총 2.64% 소각 예정 (D-5)",
       "reason": "자사주 시총 2.64% 영구소각 호재"
     },
-    "F&amp;F": {
+    "F&F": {
       "boost_score": 0,
       "tag": "🔥 시총 2.55% 소각 예정 (D-17)",
       "reason": "자사주 시총 2.55% 영구소각 호재"
