@@ -1538,6 +1538,49 @@
       "evaluated": true,
       "success_count": 1,
       "total_count": 1
+    },
+    {
+      "date": "2026-11-13",
+      "picks": [
+        {
+          "code": "028050",
+          "name": "삼성E&A",
+          "market": "KOSPI",
+          "sector": "건축기술, 엔지",
+          "catalyst": "KB證 \"삼성E&A, AI·모듈러로 사업 구조 혁신…목표가↑\"",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/003/0014299746",
+          "catalyst_source": "뉴시스",
+          "catalyst_body": "KB증권은 4일 삼성E&A에 대해 인공지능(AI)을 통한 설계 능력 극대화와 모듈러를 통한 변수 통제로 '체급이 다른' EPC(설계·조달·시공)를 만들었다고 분석했다. 이에 목표주가를 기존 8만10",
+          "close_price": 68700,
+          "price": 68700,
+          "change_pct": 4.09,
+          "amount_eok": 2019,
+          "marcap": 13465200000000,
+          "marcap_str": "13조 4,652억",
+          "target_1": 70074,
+          "target_1_pct": "+2.0%",
+          "target_2": 72135,
+          "target_2_pct": "+5.0%",
+          "stop_loss": 67326,
+          "stop_loss_pct": "-2.0%",
+          "score": 99,
+          "reason": "거래대금 2,019억 폭발(시총회전율 1.5%) · 고가 마감 양봉(윗꼬리 27%) · 차트: 🔥 60일 신고가 대돌파 (상방 매물 100% 공백) · 당일 VWAP 상회(+0.2% · 고점 12:05) · 🏦기관 연속 순매수 매집(+3점)",
+          "holding_period": "당일 15:10~15:30 매수 → 익일 09:00~09:20 전량 분할 매도",
+          "tags": [
+            "거래대금폭발",
+            "단단한양봉",
+            "익일시초가노림",
+            "60일신고가대돌파",
+            "매물100%공백",
+            "기관매집"
+          ],
+          "sr_status": "🔥 60일 신고가 대돌파 (상방 매물 100% 공백)",
+          "support_price": 68000,
+          "next_resistance": "신고가 영역 (상방 무저항)",
+          "chart_url": "https://m.stock.naver.com/domestic/stock/028050/total"
+        }
+      ],
+      "evaluated": false
     }
   ]
 }
