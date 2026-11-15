@@ -894,6 +894,9 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
 
     # 거래대금 상위 30개 종목 압축 (3,000억~30조 주도주 풀 전수 정밀 분석)
     closing_pool = closing_pool.sort_values(by='Amount', ascending=False).head(30)
+    if risk_val > 60 or str((regime or {}).get('status', 'neutral')).lower() == 'panic':
+        logger.info(f"[종가베팅 1차 시황필터 차단] AI 리스크 {risk_val}점 (>60점 매수금지 구간) ➔ 종가베팅 진입 전면 차단")
+        closing_pool = closing_pool.iloc[0:0]
 
     for _, row in closing_pool.iterrows():
         code = str(row['Code'])
@@ -1206,10 +1209,10 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.warning(f"[스윙 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
                 return None
 
-            # 1차 시황 필터: AI 리스크 점수 70점 이상(위험장) 시 스윙 진입 원천 차단
+            # 1차 시황 필터: AI 리스크 점수 60점 이하만 허용 (60점 초과 시 스윙/종가 전 전략 매수 차단 원칙과 통일)
             regime_status = str((regime or {}).get('status', 'neutral')).lower()
-            if risk_val >= 70 or regime_status == 'panic':
-                logger.info(f"[스윙 1차 시황필터 차단] {name}({code}): AI 리스크 {risk_val}점 (>=70 매수금지 구간)")
+            if risk_val > 60 or regime_status == 'panic':
+                logger.info(f"[스윙 1차 시황필터 차단] {name}({code}): AI 리스크 {risk_val}점 (>60점 매수금지 구간)")
                 return None
 
             # 기본 출발 점수 65점 유지 (점수 인플레이션 방지: 순수 가산점 +25점 이상 획득 시에만 90점 도달)
@@ -1220,9 +1223,9 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             if regime_status == 'bull' and risk_val <= 35:
                 score += 3.0
                 reasons.append("🌞강세/안전 시황 통과(+3점)")
-            elif risk_val >= 60 or regime_status == 'bear':
+            elif regime_status == 'bear':
                 score -= 5.0
-                reasons.append("⚠️주의/약세 시황 방어 감점(-5점)")
+                reasons.append("⚠️약세 시황 방어 감점(-5점)")
 
             score += min(amount_eok / 80.0, 10.0) + (5.0 - dist_ma20) * 3.0
 

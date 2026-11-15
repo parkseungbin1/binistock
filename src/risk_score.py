@@ -174,13 +174,13 @@ def get_risk_assessment(score: int) -> dict:
             'badge_class': 'risk-good',
             'desc': '시장 위험도 낮음: 공격적 매매 및 종가베팅 비중 100% 정상 운용 가능 (상승 우세 장세)'
         }
-    elif score <= 65:
+    elif score <= 60:
         return {
             'score': score,
             'grade': '주의 (중위험)',
             'color': '#f59e0b',
             'badge_class': 'risk-caution',
-            'desc': '단기 변동성 주의: 리스크 점수 비례 비중 축소 및 기계적 익절 원칙 엄격 준수 (박스권/혼조세)'
+            'desc': '단기 변동성 주의 (60점 이하 진입 허용): 리스크 점수 비례 비중 축소 및 기계적 익절 원칙 엄격 준수'
         }
     else:
         return {
@@ -188,5 +188,5 @@ def get_risk_assessment(score: int) -> dict:
             'grade': '경고 (고위험)',
             'color': '#ef4444',
             'badge_class': 'risk-danger',
-            'desc': '시장 하방 압력 경계 (65점 초과): 신규 매수 전면 차단 및 현금 100% 안전 보존'
+            'desc': '시장 하방 압력 경계 (60점 초과): 종가·스윙 전 전략 신규 매수 전면 차단 및 현금 100% 안전 보존'
         }

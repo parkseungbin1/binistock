@@ -93,9 +93,9 @@ class KalmanKellyFilter:
 
         unc_factor = max(0.85, 1.0 - math.sqrt(self.P_w))
 
-        if risk_score > 65:
+        if risk_score > 60:
             calibrated_pct = 0.0
-            risk_label = f"🚨 AI 리스크 {risk_score}점 초과로 전면 매수 차단 (현금 100% 보존)"
+            risk_label = f"🚨 AI 리스크 {risk_score}점 > 60점 초과로 전면 매수 차단 (현금 100% 보존)"
             is_active = False
         else:
             if risk_score <= 30:
