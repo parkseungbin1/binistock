@@ -72,7 +72,7 @@ def render_calendar_dashboard_html(event_intel: dict) -> str:
         banner_title = f"오늘 밤 야간 리스크 안전 구간 (Risk Score: {risk_score}점 / 🟢 GREEN)"
         banner_desc = (
             "오늘 밤 시장을 뒤흔들 고위험 경제지표가 없습니다.<br>"
-            "AI 점수 80점 이상의 주도주 종목에 대해 <b>정상 100% 종가베팅 오버나잇 진입이 허용</b>됩니다."
+            "AI 점수 90점 이상의 주도주 종목에 대해 <b>정상 100% 종가베팅 오버나잇 진입이 허용</b>됩니다."
         )
 
     # 감지된 야간 이벤트 리스트

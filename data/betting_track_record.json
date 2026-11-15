@@ -989,7 +989,7 @@
           "next_high_price": 208500,
           "gap_pct": -4.65,
           "high_pct": -3.02,
-          "is_success": true,
+          "is_success": false,
           "status": "AI 리스크 차단 (현금 보존)",
           "risk_score": 65
         },
@@ -1032,7 +1032,7 @@
           "next_high_price": 463500,
           "gap_pct": -4.41,
           "high_pct": -0.32,
-          "is_success": true,
+          "is_success": false,
           "status": "AI 리스크 차단 (현금 보존)",
           "risk_score": 65
         },
@@ -1075,7 +1075,7 @@
           "next_high_price": 177000,
           "gap_pct": -5.0,
           "high_pct": -3.75,
-          "is_success": true,
+          "is_success": false,
           "status": "AI 리스크 차단 (현금 보존)",
           "risk_score": 65
         }

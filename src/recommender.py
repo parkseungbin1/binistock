@@ -1049,9 +1049,9 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     tags.append("D-Day호재모멘텀")
 
             score = max(0.0, score)
-            # AI 종합 점수 80점 미만인 어중간한 종목은 원천 배제 (조건 미달 시 무포지션 100% 현금 보존)
-            if score < 80.0:
-                logger.info(f"[종가베팅 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 80점")
+            # AI 종합 점수 90점 미만인 어중간한 종목은 원천 배제 (조건 미달 시 무포지션 100% 현금 보존)
+            if score < 90.0:
+                logger.info(f"[종가베팅 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점")
                 continue
 
             closing_picks.append({
@@ -1088,7 +1088,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             })
 
     closing_picks.sort(key=lambda x: x['score'], reverse=True)
-    # [동일 섹터 쏠림 분산] 1·2등이 같은 섹터에 몰릴 경우 80점+ 타 섹터 최고점 후보를 2번 슬롯에 우선 배치
+    # [동일 섹터 쏠림 분산] 1·2등이 같은 섹터에 몰릴 경우 90점+ 타 섹터 최고점 후보를 2번 슬롯에 우선 배치
     if len(closing_picks) >= 3:
         top_sec = closing_picks[0].get('sector', '')
         second_sec = closing_picks[1].get('sector', '')
@@ -1120,7 +1120,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     # 2) 당일 거래대금 100억 이상 (소외주/잡주 원천 차단)
     # 3) 당일 양봉 필수 (ChagesRatio >= 0.0 & Close >= Open, 음봉 절대 매수 금지)
     # 4) 20일선 위 5% 이내 눌림목 지지 & 5일선-20일선 정배열
-    # 5) AI 종합 점수 80점 이상 엄격 컷오프 (미달 시 추천 없음: 100% 현금 보존)
+    # 5) AI 종합 점수 90점 이상 엄격 컷오프 (미달 시 추천 없음: 100% 현금 보존)
     closing_picked_codes = {cp['code'] for cp in closing_picks}
     swing_pool = common[
         (common['Marcap'] >= 3000 * 1e8) &     # 시총 3,000억 이상
@@ -1249,8 +1249,9 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     tags.append("D-Day호재모멘텀")
 
             score = max(0.0, score)
-            # AI 점수 80점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
-            if score < 80.0:
+            # AI 점수 90점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
+            if score < 90.0:
+                logger.info(f"[스윙 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점")
                 return None
 
             stg = resolve_swing_targets(close_p, regime=regime, market_context=market_context)
@@ -1482,11 +1483,11 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     except Exception as e:
         logger.debug(f"기준봉 눌림목 스캔 예외: {e}")
 
-    # 스윙 추천주 1~3등(TOP 3)이 대시보드와 텔레그램에 항상 일관되게 표시되도록 보충 및 AI 점수순 정렬
+    # 스윙 추천주 1~3등(TOP 3)이 대시보드와 텔레그램에 항상 일관되게 표시되도록 보충 및 AI 점수순 정렬 (90점 이상만 허용)
     if len(swing_picks) < 3 and pullback_picks:
         existing_sw_codes = {s['code'] for s in swing_picks}
         for pb in pullback_picks:
-            if pb['code'] not in existing_sw_codes:
+            if pb.get('score', 0) >= 90 and pb['code'] not in existing_sw_codes:
                 swing_picks.append(dict(pb))
                 existing_sw_codes.add(pb['code'])
             if len(swing_picks) >= 3:
@@ -1755,7 +1756,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 _score = min(_score, 79.0)
 
             _score = max(0.0, min(_score, 99.0))
-            _hp_str = "HTS 조건식 포착 → AI 80점+ 시 종가/스윙 분할 매수, 80점 미만 시 관망"
+            _hp_str = "HTS 조건식 포착 → AI 90점+ 시 종가/스윙 분할 매수, 90점 미만 시 관망"
 
             condition_picks.append({
                 'code': _code,

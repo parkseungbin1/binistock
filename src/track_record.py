@@ -364,6 +364,8 @@ def get_self_tuning_insights():
         for p in h.get('picks', []):
             if is_h_blocked or '차단' in p.get('status', ''):
                 continue  # AI 리스크 차단 종목은 실체결 통계에서 분리
+            if p.get('score') is None:
+                continue  # 점수 미부여 초기 샘플/과거 레코드 제외 (통계 과대평가 방지)
             if 'gap_pct' in p:
                 total_picks += 1
                 gap = float(p['gap_pct'])
@@ -472,6 +474,8 @@ def render_monthly_history_html():
             if is_h_blocked or '차단' in p.get('status', ''):
                 defense_count += 1
                 continue  # 리스크 차단으로 현금 100% 보존된 종목은 실체결 통계에서 분리
+            if p.get('score') is None:
+                continue  # 점수 미부여 초기 샘플/과거 레코드 제외 (승률/누적수익 왜곡 방지)
 
             if 'gap_pct' in p and p['gap_pct'] is not None:
                 total_picks += 1

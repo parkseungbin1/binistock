@@ -61,14 +61,33 @@ def save_swing_history(data):
         logger.warning(f"스윙 트랙 레코드 저장 실패: {e}")
 
 
+_NON_STOCK_SWING_KEYWORDS = (
+    '머니마켓', 'KODEX', 'TIGER', 'RISE ', 'KBSTAR', 'HANARO',
+    'KOSEF', 'ARIRANG', 'ETF', 'ETN', '스팩',
+)
+
+
 def cleanup_old_swing_records(data):
     now = datetime.now(KST)
     cutoff = (now - timedelta(days=35)).strftime('%Y-%m-%d')
     history = data.get('history', [])
-    data['history'] = [
-        h for h in history
-        if h.get('date', '') >= cutoff and is_valid_trading_date(h.get('date', ''))
-    ]
+    cleaned = []
+    for h in history:
+        if h.get('date', '') < cutoff or not is_valid_trading_date(h.get('date', '')):
+            continue
+        old_picks = h.get('picks', [])
+        new_picks = [
+            p for p in old_picks
+            if not any(kw in str(p.get('name', '')).upper() for kw in _NON_STOCK_SWING_KEYWORDS)
+        ]
+        if len(new_picks) != len(old_picks):
+            h['picks'] = new_picks
+            if new_picks:
+                h['evaluated'] = all(p.get('completed', False) for p in new_picks)
+            elif not h.get('blocked', False):
+                continue
+        cleaned.append(h)
+    data['history'] = cleaned
     return data
 
 

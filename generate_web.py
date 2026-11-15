@@ -490,7 +490,7 @@ def generate_html():
     else:
         closing_cards_html = (
             "<div class='empty-card'>"
-            f"🛡️ 오늘(<b>{closing_ref_date}</b>) 엄격한 S급 기준(시총·거래대금·회전율·상단매물·AI 80점 이상)을 모두 통과한 종가베팅 종목이 없어 무포지션 현금 보존을 권장합니다."
+            f"🛡️ 오늘(<b>{closing_ref_date}</b>) 엄격한 S급 기준(시총·거래대금·회전율·상단매물·AI 90점 이상)을 모두 통과한 종가베팅 종목이 없어 무포지션 현금 보존을 권장합니다."
             "</div>"
         )
     # 시장 환경 연동 스윙 레짐 요약
@@ -527,7 +527,11 @@ def generate_html():
         sp['rec_date_html'] = (
             f'<div class="rec-date-badge">📅 추천일 <b>{swing_scan_label}</b> 스캔 · {swing_basis} <span style="margin-left:6px; background:rgba(255,255,255,0.12); padding:1px 6px; border-radius:4px; font-weight:700;">{m_lbl}</span>{prev_html}</div>'
         )
-    swing_cards_html = "".join([render_rec_card(p, "theme-swing") for p in swing_picks])
+    swing_cards_html = "".join([render_rec_card(p, "theme-swing") for p in swing_picks]) if swing_picks else (
+        "<div class='empty-card'>"
+        "🛡️ 오늘 엄격한 S급 기준(20일선 우상향 눌림목·수급·AI 90점 이상)을 모두 통과한 스윙 종목이 없어 무포지션 현금 보존을 권장합니다."
+        "</div>"
+    )
     breakout_cards_html = "".join([render_rec_card(p, "theme-breakout") for p in breakout_picks])
     pullback_cards_html = "".join([render_rec_card(p, "theme-swing") for p in pullback_picks]) if pullback_picks else "<div class='empty-card'>현재 과거 기준봉의 5일선·중심선 눌림목 구간에 진입한 종목이 없습니다.</div>"
     cond_cnt = len(condition_picks)
@@ -3507,7 +3511,7 @@ def generate_html():
     <div id="rec-condition-container" class="rec-container" style="display: none;">
         <div class="rec-strategy-banner banner-cyan">
             <div>
-                <b>🎯 내 조건식 ('60일이상추가 1000억') 실시간 AI 정밀 채점</b> ({cond_src_badge} · 갱신 <b>{cond_updated_at}</b>): 키움 HTS 조건검색 포착 종목을 종가베팅과 100% 동일한 AI 퀀트 알고리즘(수급·VWAP·윗꼬리·지지저항·DART 공시)으로 채점하여 80점+ S급 타점만 선별합니다.
+                <b>🎯 내 조건식 ('60일이상추가 1000억') 실시간 AI 정밀 채점</b> ({cond_src_badge} · 갱신 <b>{cond_updated_at}</b>): 키움 HTS 조건검색 포착 종목을 종가베팅과 100% 동일한 AI 퀀트 알고리즘(수급·VWAP·윗꼬리·지지저항·DART 공시)으로 채점하여 90점+ S급 타점만 선별합니다.
             </div>
         </div>
 

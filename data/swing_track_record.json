@@ -732,46 +732,9 @@
           "holding_days": 2,
           "is_success": true,
           "final_return_pct": 9.17
-        },
-        {
-          "code": "455890",
-          "name": "RISE 머니마켓액티브",
-          "market": "KOSPI",
-          "sector": "주도주",
-          "catalyst": "[공시] KB RISE 머니마켓액티브증권상장지수투자신탁(채권) ETF유동성공급자(LP)와유동성공급계약의체결ㆍ변경ㆍ해지안내",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/455890/disclosure",
-          "catalyst_source": "DART 전자공시",
-          "entry_price": 55845,
-          "price": 55845,
-          "change_pct": 0.01,
-          "amount_eok": 106,
-          "marcap": 3196456110000,
-          "marcap_str": "3조 1,965억",
-          "target_1": 58637,
-          "target_1_pct": "+5.0%",
-          "target_2": 60871,
-          "target_2_pct": "+9.0%",
-          "stop_loss": 54170,
-          "stop_loss_pct": "-3.0%",
-          "rule_v": 1,
-          "score": 83,
-          "reason": "20일선(55,766원) 눌림목 지지 · 이격도 0.1% 안정 구간",
-          "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
-          "tags": [
-            "20일선눌림목",
-            "추세우상향",
-            "안정적손익비"
-          ],
-          "chart_url": "https://m.stock.naver.com/domestic/stock/455890/total",
-          "highest_price": 55875,
-          "lowest_price": 55850,
-          "max_return_pct": 0.05,
-          "status": "진행중 (3일차)",
-          "completed": false,
-          "holding_days": 3
         }
       ],
-      "evaluated": false
+      "evaluated": true
     },
     {
       "date": "2026-11-11",
