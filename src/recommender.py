@@ -418,14 +418,14 @@ def resolve_swing_targets(close_p: int, regime: dict = None, risk_score: int = N
         except Exception:
             risk_score = 50
     """
-    스윙 목표가 & 손절가 산출 (원래 기준 복원: 1차 +5.0%, 2차 +9.0%, 손절 -3.0%)
-    - 손익비: 1차 1.67 : 1, 2차 3.00 : 1 (평균 2.33 : 1)
-    - 20일선 눌림목 반등 타겟: 1차 +5% 50% 분할 익절 → 본절 상향 → 2차 +9% 전량 익절
+    스윙 목표가 & 손절가 산출 (+2.5% 조기 본절 잠금 / 1차 +5.0% / 2차 +9.0% / 손절 -3.0%)
+    - 손익비: 1차 1.67 : 1, 2차 3.00 : 1 (평균 2.33 : 1) + +2.5% 터치 시 손절선 본절(+0.3%) 조기 상향
+    - 20일선 눌림목 반등 타겟: +2.5% 본절 잠금 → 1차 +5% 50% 분할 익절 → 2차 +9% 전량 익절
     """
     return {
         'mode': 'TREND',
         'mode_label': '🚀 2~5일 스윙 (추세 파동)',
-        'mode_desc': '20일선 눌림목 반등 타겟: 1차 +5% 50% 분할 익절 → 손절선 본절 상향 → 2차 +9% 전량 익절',
+        'mode_desc': '20일선 눌림목 반등 타겟: +2.5% 터치 시 조기 본절(+0.3%) 잠금 → 1차 +5% 50% 분할 익절 → 2차 +9% 전량 익절',
         'target_1': int(round(close_p * 1.05)),
         'target_1_pct': '+5.0%',
         'target_2': int(round(close_p * 1.09)),
@@ -434,7 +434,7 @@ def resolve_swing_targets(close_p: int, regime: dict = None, risk_score: int = N
         'target_3_pct': None,
         'stop_loss': int(round(close_p * 0.97)),
         'stop_loss_pct': '-3.0%',
-        'holding_period': '2~5영업일 분할 매도 (1차 +5.0% 50% 익절 → 본절 상향 → 2차 +9.0% 잔량 전량 익절)',
+        'holding_period': '2~5영업일 분할 매도 (+2.5% 조기 본절 잠금 → 1차 +5.0% 50% 익절 → 2차 +9.0% 잔량 전량 익절)',
     }
 
 
@@ -1206,38 +1206,58 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.warning(f"[스윙 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
                 return None
 
-            score = 65.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
+            # 1차 엄선 7중 필터(시총·거래대금·양봉·윗꼬리·20일선지지·저항선·설거지/악재차단) 통과 기본점 72점 + 시황 레짐 연동
+            score = 72.0
             reasons = [f"20일선({int(ma20):,}원) 눌림목 지지", f"이격도 {dist_ma20:.1f}% 안정 구간"]
             tags = ['20일선눌림목', '추세우상향', '안정적손익비']
 
+            regime_status = str((regime or {}).get('status', 'neutral')).lower()
+            if regime_status == 'bull' or risk_val <= 35:
+                score += 6.0
+                reasons.append("🌞강세/안전 시황 프리미엄(+6점)")
+            elif regime_status == 'neutral' and risk_val <= 50:
+                score += 3.0
+                reasons.append("🌤️안정 시황 가점(+3점)")
+            elif risk_val >= 65 or regime_status == 'bear':
+                score -= 5.0
+                reasons.append("⚠️고위험/약세 시황 방어 감점(-5점)")
+
+            score += min(amount_eok / 60.0, 12.0) + (5.0 - dist_ma20) * 3.5
+
+            if high_p > low_p and ((high_p - close_p) / (high_p - low_p)) <= 0.20 and 1.0 <= change_pct <= 4.5:
+                score += 3.0
+                reasons.append("🕯️윗꼬리 짧은 알짜 양봉(+3점)")
+
             if sr:
                 if sr.get('is_60_breakout'):
-                    score += 15.0
+                    score += 12.0
                     reasons.append(sr.get('status', '60일 신고가 돌파'))
                     tags.extend(sr.get('tags', []))
                 elif sr.get('is_20_breakout'):
-                    score += 10.0
+                    score += 8.0
                     reasons.append(sr.get('status', '20일 박스권 상단 돌파'))
                     tags.extend(sr.get('tags', []))
 
             if micro and micro.get('vwap_diff_pct', -1.0) >= 0:
-                score += 3.0
-                reasons.append(f"당일 VWAP 상회(+{micro['vwap_diff_pct']:.1f}%)")
+                vwap_d = micro.get('vwap_diff_pct', 0.0)
+                vwap_pt = 5.0 if vwap_d >= 0.5 else 4.0
+                score += vwap_pt
+                reasons.append(f"당일 VWAP 상회(+{vwap_d:.1f}%, +{int(vwap_pt)}점)")
 
             if major_flow.get('is_dual_buy'):
-                score += 5.0
-                reasons.append("🏦외인·기관 쌍끌이 매수(+5점)")
+                score += 7.0
+                reasons.append("🏦외인·기관 쌍끌이 매수(+7점)")
                 tags.append("쌍끌이수급")
             elif major_flow.get('is_organ_accum'):
-                score += 2.0
-                reasons.append("🏦기관 연속 순매수(+2점)")
+                score += 4.0
+                reasons.append("🏦기관 연속 순매수(+4점)")
             elif major_flow.get('is_major_dump'):
-                score -= 5.0
-                reasons.append("⚠️외인·기관 동시 순매도(-5점)")
+                score -= 8.0
+                reasons.append("⚠️외인·기관 동시 순매도(-8점)")
 
             if code in catalyst_codes:
-                score += 12.0
-                reasons.append("실적/호재 공시 연계")
+                score += 10.0
+                reasons.append("실적/호재 공시 연계(+10점)")
                 tags.append("실적모멘텀")
 
             ev_info = event_boost_map.get(name) or event_boost_map.get(code)
@@ -1248,7 +1268,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     reasons.append(f"🎯{ev_info.get('tag')} (+{b_score}점)")
                     tags.append("D-Day호재모멘텀")
 
-            score = max(0.0, score)
+            score = min(99.0, max(0.0, score))
             # AI 점수 90점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
             if score < 90.0:
                 logger.info(f"[스윙 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점")
@@ -1274,7 +1294,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'stop_loss': stg['stop_loss'],
                 'stop_loss_pct': stg['stop_loss_pct'],
                 'holding_period': stg['holding_period'],
-                'score': int(min(score, 98)),
+                'score': int(round(min(score, 99.0))),
                 'reason': " · ".join(reasons),
                 'tags': list(dict.fromkeys(tags)),
                 'sr_status': sr.get('status', '') if sr else '',

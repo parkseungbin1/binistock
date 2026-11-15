@@ -18,9 +18,10 @@ KST = timezone(timedelta(hours=9))
 STATE_DIR = Path(__file__).resolve().parent.parent / "data"
 SWING_RECORD_FILE = STATE_DIR / "swing_track_record.json"
 
-# 원본 스윙 청산 규칙 버전 (1차 +5.0%, 2차 +9.0%, 손절 -3.0%)
-SWING_RULE_VERSION = 1
+# 스윙 청산 규칙 버전 (+2.5% 터치 시 본절(+0.3%) 잠금 / 1차 +5.0% / 2차 +9.0% / 손절 -3.0%)
+SWING_RULE_VERSION = 2
 T1_PCT, T2_PCT, SL_PCT = 5.0, 9.0, -3.0
+EARLY_BE_PCT, BE_LOCK_PCT = 2.5, 0.3
 MAX_HOLD_DAYS = 5
 
 
@@ -195,7 +196,7 @@ def get_recent_stopped_codes(lookback_days=10):
 
 
 def evaluate_swing_performance():
-    """추천일 이후 2~5영업일간 주가 흐름을 추적하여 스윙 성과 자동 판정 (1차 +5%, 2차 +9%, 손절 -3%)"""
+    """추천일 이후 2~5영업일간 일별 OHLC 흐름을 순차 추적하여 스윙 성과 자동 판정 (+2.5% 조기 본절 잠금 / 1차 +5% / 2차 +9% / 손절 -3%)"""
     data = load_swing_history()
     history = data.get('history', [])
     if not history:
@@ -250,6 +251,7 @@ def evaluate_swing_performance():
                 t1 = int(round(entry_p * (1 + T1_PCT / 100)))
                 t2 = int(round(entry_p * (1 + T2_PCT / 100)))
                 sl = int(round(entry_p * (1 + SL_PCT / 100)))
+                early_be_p = int(round(entry_p * (1 + EARLY_BE_PCT / 100)))
                 p['target_1'], p['target_2'], p['stop_loss'] = t1, t2, sl
                 p['target_1_pct'], p['target_2_pct'], p['stop_loss_pct'] = '+5.0%', '+9.0%', '-3.0%'
 
@@ -258,49 +260,77 @@ def evaluate_swing_performance():
                     all_done = False
                     continue
 
-                elapsed = len(sub)
+                be_locked = False
+                t1_hit = False
+                exited = False
+                obs_high = float(sub['High'].iloc[0])
+                obs_low = float(sub['Low'].iloc[0])
+                last_close = float(sub['Close'].iloc[-1])
+                elapsed = 0
+
+                for day_idx, (_, bar) in enumerate(sub.iterrows(), start=1):
+                    elapsed = day_idx
+                    d_high = float(bar['High'])
+                    d_low = float(bar['Low'])
+                    d_close = float(bar['Close'])
+                    obs_high = max(obs_high, d_high)
+                    obs_low = min(obs_low, d_low)
+                    was_be_locked = be_locked
+
+                    # 1) 2차 목표가(+9%) 달성 ➔ 전량 익절
+                    if d_high >= t2:
+                        max_ret_now = round(((obs_high - entry_p) / entry_p) * 100, 2)
+                        p['status'] = '2차 전량 달성'
+                        p['is_success'] = True
+                        p['completed'] = True
+                        p['final_return_pct'] = max_ret_now
+                        exited = True
+                        break
+
+                    # 2) 1차 목표가(+5%) 달성 ➔ 50% 분할익절 + 본절 잠금
+                    if d_high >= t1:
+                        t1_hit = True
+                        be_locked = True
+
+                    # 3) +2.5% 조기 본절 트리거 터치 (KRX 호가단위 반올림 기준 +2.50% 포함)
+                    if d_high >= early_be_p or round(((d_high - entry_p) / entry_p) * 100, 2) >= EARLY_BE_PCT:
+                        be_locked = True
+
+                    # 4) 본절 잠금 전 손절선(-3%) 이탈
+                    if not be_locked and d_low <= sl:
+                        p['status'] = '손절 이탈'
+                        p['is_success'] = False
+                        p['completed'] = True
+                        p['final_return_pct'] = -3.0
+                        exited = True
+                        break
+
+                    # 5) +2.5% 조기 본절 잠금 이후(+5% 1차 미도달 상태) 진입가 이하 이탈 ➔ 본절 방어 청산
+                    if be_locked and not t1_hit and ((was_be_locked and d_low <= entry_p) or (d_close <= entry_p)):
+                        p['status'] = f'본절 방어 (+{BE_LOCK_PCT:.1f}%)'
+                        p['is_success'] = True
+                        p['completed'] = True
+                        p['final_return_pct'] = BE_LOCK_PCT
+                        exited = True
+                        break
+
                 p['holding_days'] = elapsed
-
-                highs = sub['High'].values
-                lows = sub['Low'].values
-                closes = sub['Close'].values
-
-                max_high = float(highs.max())
-                min_low = float(lows.min())
-                last_close = float(closes[-1])
-
-                p['highest_price'] = int(max_high)
-                p['lowest_price'] = int(min_low)
-
-                max_ret = round(((max_high - entry_p) / entry_p) * 100, 2)
-                min_ret = round(((min_low - entry_p) / entry_p) * 100, 2)
+                p['highest_price'] = int(obs_high)
+                p['lowest_price'] = int(obs_low)
+                max_ret = round(((obs_high - entry_p) / entry_p) * 100, 2)
                 p['max_return_pct'] = max_ret
 
-                # 1) 2차 목표가 달성 (+9% 이상)
-                if max_high >= t2:
-                    p['status'] = '2차 전량 달성'
-                    p['is_success'] = True
-                    p['completed'] = True
-                    p['final_return_pct'] = max_ret
-                # 2) 1차 목표가 달성 (+5% 이상)
-                elif max_high >= t1:
-                    p['status'] = '1차 분할 달성'
-                    p['is_success'] = True
-                    if elapsed >= MAX_HOLD_DAYS:
-                        p['completed'] = True
-                        p['final_return_pct'] = max_ret
-                    else:
-                        all_done = False
-                # 3) 손절선 이탈 (-3% 이하)
-                elif min_low <= sl:
-                    loss_pct = round(((sl - entry_p) / entry_p) * 100, 2)
-                    p['status'] = '손절 이탈'
-                    p['is_success'] = False
-                    p['completed'] = True
-                    p['final_return_pct'] = -3.0
-                # 4) 기간 만료 (5영업일 경과)
-                else:
-                    if elapsed >= MAX_HOLD_DAYS:
+                if not exited:
+                    total_bars = len(sub)
+                    if t1_hit:
+                        p['status'] = '1차 분할 달성'
+                        p['is_success'] = True
+                        if total_bars >= MAX_HOLD_DAYS:
+                            p['completed'] = True
+                            p['final_return_pct'] = max_ret
+                        else:
+                            all_done = False
+                    elif total_bars >= MAX_HOLD_DAYS:
                         cur_ret = round(((last_close - entry_p) / entry_p) * 100, 2)
                         p['status'] = '기간 만료'
                         p['is_success'] = cur_ret >= 0
@@ -352,7 +382,7 @@ def render_monthly_swing_history_html():
             total_picks += 1
             total_cum += ret
             hold_days.append(p.get('holding_days', 0) or 0)
-            if p.get('is_success') or p.get('max_return_pct', 0.0) >= T1_PCT:
+            if '1차' in p.get('status', '') or '2차' in p.get('status', '') or p.get('max_return_pct', 0.0) >= T1_PCT:
                 t1_hits += 1
             if ret > 0 or p.get('is_success'):
                 win_picks += 1
@@ -430,6 +460,8 @@ def render_monthly_swing_history_html():
                 badge = f'<span class="res-badge win-gold">🚀 2차 전량 달성 (+{max_ret:.2f}%)</span>'
             elif '1차' in status:
                 badge = f'<span class="res-badge win">🎯 1차 분할 달성 (+{max_ret:.2f}%)</span>'
+            elif '본절' in status:
+                badge = f'<span class="res-badge shield" style="background:#065f46; color:#34d399; border:1px solid #059669; font-weight:700;">🛡️ 조기 본절 방어 ({fin_ret:+.2f}%)</span>'
             elif '손절' in status:
                 badge = f'<span class="res-badge loss">🔻 손절 이탈 ({fin_ret:+.2f}%)</span>'
             elif completed:
@@ -442,6 +474,8 @@ def render_monthly_swing_history_html():
             if not p_blocked:
                 if '손절' in status:
                     res_str = f"{h_date} 종가 {entry_p:,}원 → 최저 <b>{low_p:,}원</b> (<span class='down'>{min_ret:+.2f}%</span> · 1차목표 +5% 미달, 반등최고 {max_ret:+.2f}%) {badge}"
+                elif '본절' in status:
+                    res_str = f"{h_date} 종가 {entry_p:,}원 → 최고 <b>{high_p:,}원</b> (<span class='up'>+{max_ret:.2f}%</span> 돌파 후 +2.5% 조기 본절선 작동) {badge}"
                 else:
                     res_str = f"{h_date} 종가 {entry_p:,}원 → 최고 <b>{high_p:,}원</b> (<span class='{'up' if max_ret>0 else 'down'}'>{max_ret:+.2f}%</span>) {badge}"
 
