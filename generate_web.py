@@ -211,7 +211,7 @@ def generate_html():
     kelly_win_rate = tuning_info.get('win_rate', 75.0)
     kelly_rr = tuning_info.get('rr_ratio', 2.15)
     kelly_base_pct = tuning_info.get('half_kelly_pct', 60.0)
-    if ai_risk_score > 65:
+    if ai_risk_score > 60:
         recommended_invest_pct = 0
     else:
         recommended_invest_pct = int(round(max(25.0, min(72.0, kelly_base_pct * (1.0 - (ai_risk_score / 115.0))))))
@@ -223,9 +223,9 @@ def generate_html():
         kalman_win_rate = kalman_res['filtered_win_rate']
         kalman_rr = kalman_res['filtered_rr_ratio']
         kalman_mom = kalman_res['momentum_label']
-        if ai_risk_score <= 65 and kalman_res.get('calibrated_pct', 0) > 0:
+        if ai_risk_score <= 60 and kalman_res.get('calibrated_pct', 0) > 0:
             recommended_invest_pct = int(round(kalman_res['calibrated_pct']))
-        elif ai_risk_score > 65:
+        elif ai_risk_score > 60:
             recommended_invest_pct = 0
     except Exception as e:
         kalman_res = None
@@ -3609,7 +3609,7 @@ def generate_html():
                     <div style="color:#fbbf24; font-weight:700; font-size:0.8rem; margin-bottom:4px;">👀 대시보드 어디를 보나?</div>
                     <div style="color:var(--text-main); font-size:0.82rem; margin-bottom:8px;">최상단 <b>[🛡️ AI 실시간 시장 리스크 스코어]</b>와 <b>[💰 하프 켈리 실전 시드머니 계산기]</b>의 오늘 권장 총 투입 비중(%)</div>
                     <div style="color:#34d399; font-weight:700; font-size:0.8rem; margin-bottom:4px;">⚡ 실전 매매 공식 (Action Rule)</div>
-                    <div style="color:var(--text-main); font-size:0.82rem; margin-bottom:8px;">• 리스크 점수가 <b>65점(경고) 이상</b>일 때는 계산기가 총 투입 비중을 30% 이하로 자동 축소합니다.<br>• 이때 억지로 3종목을 다 사지 말고, <b>추천 1위 대장주 딱 1종목</b>에만 계산기가 알려주는 <code>1종목당 권장 주식 수(주)</code>만큼만 진입하세요.</div>
+                    <div style="color:var(--text-main); font-size:0.82rem; margin-bottom:8px;">• 리스크 점수가 <b>60점(경고) 초과</b>일 때는 1차 시황 필터가 작동해 신규 매수를 전면 차단(0%)합니다.<br>• 리스크 <b>51~60점(주의)</b> 구간에서는 계산기가 비중을 자동 축소하므로, <b>90점 이상 대장주</b>에만 계산기가 알려주는 <code>1종목당 권장 주식 수(주)</code>만큼 진입하세요.</div>
                     <div style="color:#a78bfa; font-weight:700; font-size:0.78rem;">💡 왜 통하는가?: 하락장에서 계좌가 녹는 유일한 이유는 상승장과 똑같은 비중으로 베팅하기 때문입니다.</div>
                 </div>
             </div>
