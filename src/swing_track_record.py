@@ -72,8 +72,8 @@ def cleanup_old_swing_records(data):
     return data
 
 
-def record_swing_picks(picks):
-    """당일 2~5일 스윙 추천 종목 기록 (1차 +5%, 2차 +9%, 손절 -3%)"""
+def record_swing_picks(picks, risk_score=None):
+    """당일 2~5일 스윙 추천 종목 기록 (1차 +5%, 2차 +9%, 손절 -3%). risk_score: 추천 시점 AI 리스크 점수(매일 저장)"""
     if not picks:
         return
     now = datetime.now(KST)
@@ -139,14 +139,40 @@ def record_swing_picks(picks):
     if existing:
         if not existing[0].get('evaluated', False):
             existing[0]['picks'] = pick_items
+        if risk_score is not None and existing[0].get('risk_score') is None:
+            existing[0]['risk_score'] = int(risk_score)
     else:
-        data['history'].append({
+        new_rec = {
             'date': date_str,
             'picks': pick_items,
             'evaluated': False
-        })
+        }
+        if risk_score is not None:
+            new_rec['risk_score'] = int(risk_score)
+        data['history'].append(new_rec)
 
     save_swing_history(data)
+
+
+def get_recent_stopped_codes(lookback_days=10):
+    """
+    최근 lookback_days(달력일) 내 추천됐다가 손절(-3%)로 끝난 종목 코드 집합.
+    손절 직후 같은 종목을 다시 추천하는 문제(KT&G 연속 손절 등) 방지용 쿨다운.
+    """
+    try:
+        data = load_swing_history()
+        cutoff = (datetime.now(KST) - timedelta(days=lookback_days)).strftime('%Y-%m-%d')
+        codes = set()
+        for h in data.get('history', []):
+            if h.get('blocked', False) or h.get('date', '') < cutoff:
+                continue
+            for p in h.get('picks', []):
+                if '손절' in str(p.get('status', '')) and p.get('code'):
+                    codes.add(str(p['code']))
+        return codes
+    except Exception as e:
+        logger.warning(f"손절 쿨다운 목록 로드 실패: {e}")
+        return set()
 
 
 def evaluate_swing_performance():

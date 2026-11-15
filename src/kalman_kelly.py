@@ -134,8 +134,31 @@ class KalmanKellyFilter:
         }
 
 
+def estimate_plan_return(gap_pct: float, high_pct: float | None = None,
+                         tp1: float = 2.0, tp2: float = 5.0, sl: float = -2.0) -> float:
+    """
+    종가베팅 매매 계획(1차 +2% 50% / 2차 +5% 50% 지정가 매도, 갭 -2% 이하 시 시초가 청산)을
+    익일 시초갭·장중고가로 재현한 '현실적 수익률' 추정치.
+    (기존 방식: 승리 시 수익을 최소 +1.5%로 상향, 장중 고점 터치만 해도 승리로 간주 → 승률/수익 과대평가)
+    """
+    gap = float(gap_pct)
+    if gap <= sl:
+        return gap
+    if high_pct is None:
+        return gap
+    hi = float(high_pct)
+    a = tp1 if hi >= tp1 else gap
+    b = tp2 if hi >= tp2 else gap
+    return 0.5 * a + 0.5 * b
+
+
 def load_trade_records() -> list[dict]:
-    """종가베팅 및 스윙 트랙레코드 수집"""
+    """
+    종가베팅 트랙레코드 수집 (학습용).
+    - 리스크 차단일(현금 보존, 미매수)은 실제 매매가 아니므로 제외
+    - 점수(score)가 없는 과거 샘플/미검증 레코드는 제외
+    - 수익률은 '성공 배지'가 아닌 실제 시초갭/장중고가 기반 계획 재현 수익률 사용
+    """
     trades = []
     base_data_dir = _ROOT / 'data'
 
@@ -146,18 +169,20 @@ def load_trade_records() -> list[dict]:
             with open(b_file, 'r', encoding='utf-8') as f:
                 b_data = json.load(f)
                 for h in b_data.get('history', []):
+                    if h.get('blocked'):
+                        continue
                     for p in h.get('picks', []):
-                        if 'gap_pct' in p:
-                            gap = float(p['gap_pct'])
-                            is_win = bool(p.get('is_success', gap > 0))
-                            max_p = float(p.get('max_profit_pct', gap))
-                            ret_val = max(gap, max_p, 1.5) if is_win else min(gap, -0.5)
-                            trades.append({
-                                'date': h.get('date', ''),
-                                'ret_pct': ret_val,
-                                'is_win': is_win,
-                                'source': 'BETTING_RECORD'
-                            })
+                        if 'gap_pct' not in p or p.get('score') is None:
+                            continue
+                        if '차단' in str(p.get('status', '')):
+                            continue
+                        ret_val = estimate_plan_return(p['gap_pct'], p.get('high_pct'))
+                        trades.append({
+                            'date': h.get('date', ''),
+                            'ret_pct': ret_val,
+                            'is_win': ret_val > 0,
+                            'source': 'BETTING_RECORD'
+                        })
         except Exception as e:
             logger.warning(f"종가베팅 트랙레코드 파싱 실패: {e}")
 

@@ -747,7 +747,8 @@ def _resolve_ai_risk_score(market_context=None) -> int:
             'cnn_score': cnn_s if cnn_s is not None else 50.0,
             'vix': float(str(vix_v).replace(',', '')) if vix_v else 20.0,
         }))
-    except Exception:
+    except Exception as e:
+        logger.warning(f"AI 리스크 점수 산출 실패 → 보수적 기본값 50점 적용 (원인 확인 필요): {e}")
         return 50
 
 
@@ -1129,6 +1130,21 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         (common['ChagesRatio'] <= 6.5) &       # 과열되지 않은 초입 양봉
         (common['Close'] >= common['Open'])    # 당일 시가 대비 양봉 확인
     ].copy()
+
+    # 손절 직후 재추천 방지: 최근 10일 내 -3% 손절로 끝난 종목은 스윙 후보에서 제외 (쿨다운)
+    try:
+        try:
+            from src.swing_track_record import get_recent_stopped_codes
+        except ImportError:
+            from swing_track_record import get_recent_stopped_codes
+        _stopped = get_recent_stopped_codes()
+        if _stopped:
+            _before = len(swing_pool)
+            swing_pool = swing_pool[~swing_pool['Code'].astype(str).isin(_stopped)].copy()
+            if len(swing_pool) < _before:
+                logger.info(f"[스윙 손절 쿨다운] 최근 손절 종목 {_before - len(swing_pool)}개 후보 제외: {sorted(_stopped)}")
+    except Exception as _cd_err:
+        logger.debug(f"스윙 쿨다운 적용 예외: {_cd_err}")
 
     # 거래대금 상위 45개 정예 후보로 압축 후 ThreadPoolExecutor(6스레드) 병렬 고속 분석 (네이버 fchart + FDR 폴백)
     swing_pool = swing_pool.sort_values(by='Amount', ascending=False).head(45)
@@ -1803,7 +1819,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             from src.track_record import record_closing_picks
         except ImportError:
             from track_record import record_closing_picks
-        record_closing_picks(closing_picks)
+        record_closing_picks(closing_picks, risk_score=risk_val)
     except Exception as e:
         logger.warning(f"종가베팅 트랙 레코드 기록 실패: {e}")
 
@@ -1812,7 +1828,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             from src.swing_track_record import record_swing_picks
         except ImportError:
             from swing_track_record import record_swing_picks
-        record_swing_picks(swing_picks)
+        record_swing_picks(swing_picks, risk_score=risk_val)
     except Exception as e:
         logger.warning(f"스윙 트랙 레코드 기록 실패: {e}")
 

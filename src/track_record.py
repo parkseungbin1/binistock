@@ -84,8 +84,8 @@ def save_history(data):
         logger.warning(f"트랙 레코드 저장 실패: {e}")
 
 
-def record_closing_picks(picks):
-    """오늘 15:10 종가베팅 추천 종목 기록 (재료, 섹터 포함)"""
+def record_closing_picks(picks, risk_score=None):
+    """오늘 15:10 종가베팅 추천 종목 기록 (재료, 섹터 포함). risk_score: 추천 시점 AI 리스크 점수(매일 저장)"""
     if not picks:
         return
     now = datetime.now(KST)
@@ -146,12 +146,17 @@ def record_closing_picks(picks):
 
     if existing:
         existing[0]['picks'] = pick_items
+        if risk_score is not None and existing[0].get('risk_score') is None:
+            existing[0]['risk_score'] = int(risk_score)
     else:
-        data['history'].append({
+        new_rec = {
             'date': date_str,
             'picks': pick_items,
             'evaluated': False
-        })
+        }
+        if risk_score is not None:
+            new_rec['risk_score'] = int(risk_score)
+        data['history'].append(new_rec)
 
     save_history(data)
     logger.info(f"[{date_str}] 종가베팅 {len(picks)}종목 트랙 레코드 기록 완료")
@@ -261,6 +266,13 @@ def evaluate_latest_performance():
             p['gap_pct'] = round(gap_pct, 2)
             p['high_pct'] = round(high_pct, 2)
             p['is_success'] = is_success
+            # 매매 계획(1차 +2% / 2차 +5% 분할 지정가, 갭 -2% 이하 시초 청산) 재현 수익률 (성공 배지와 별개의 현실 지표)
+            if gap_pct <= -2.0:
+                p['plan_return_pct'] = round(gap_pct, 2)
+            else:
+                _a = 2.0 if high_pct >= 2.0 else gap_pct
+                _b = 5.0 if high_pct >= 5.0 else gap_pct
+                p['plan_return_pct'] = round(0.5 * _a + 0.5 * _b, 2)
 
             badge = "🎯 갭상승 성공" if is_success else ("✨ 보합권" if gap_pct >= 0 else "🔻 갭하락")
             results.append(f"• <b>{name}</b>: 종가 {close_p:,}원 → 시초가 {int(open_p):,}원 (<b>{gap_pct:+.2f}%</b> {badge})")
@@ -277,14 +289,16 @@ def evaluate_latest_performance():
 
     all_evaluated_picks = []
     for h in history:
-        if h.get('evaluated'):
+        if h.get('evaluated') and not h.get('blocked'):  # 리스크 차단일(미매수)은 승률 통계에서 제외
             for p in h.get('picks', []):
-                if 'is_success' in p:
+                if 'is_success' in p and '차단' not in str(p.get('status', '')):
                     all_evaluated_picks.append(p)
 
     total_eval = len(all_evaluated_picks)
     win_eval = sum(1 for p in all_evaluated_picks if p.get('is_success'))
     win_rate = (win_eval / total_eval * 100) if total_eval > 0 else 0.0
+    gap_up_eval = sum(1 for p in all_evaluated_picks if p.get('gap_pct', 0) > 0)
+    gap_up_rate = (gap_up_eval / total_eval * 100) if total_eval > 0 else 0.0
 
     eval_wins = [p['gap_pct'] for p in all_evaluated_picks if p.get('gap_pct', 0) > 0]
     eval_losses = [abs(p['gap_pct']) for p in all_evaluated_picks if p.get('gap_pct', 0) < 0]
@@ -295,7 +309,10 @@ def evaluate_latest_performance():
     msg = f"📊 <b>[전일({target['date']}) 종가베팅 시초가 결과 피드백]</b>\n"
     msg += "\n".join(results) + "\n"
     if total_eval >= 3:
-        msg += f"👉 <i>최근 누적 승률: <b>{win_rate:.1f}%</b> ({win_eval}승 {total_eval - win_eval}패) | <b>손익비: {rr:.2f}:1</b></i>\n"
+        msg += (
+            f"👉 <i>최근 누적 승률(고점 터치 포함): <b>{win_rate:.1f}%</b> ({win_eval}승 {total_eval - win_eval}패) | "
+            f"<b>시초가 상승 비율: {gap_up_rate:.1f}%</b> | <b>손익비: {rr:.2f}:1</b></i>\n"
+        )
 
     return msg
 
