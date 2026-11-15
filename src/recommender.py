@@ -1215,48 +1215,38 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.info(f"[스윙 1차 시황필터 차단] {name}({code}): AI 리스크 {risk_val}점 (>60점 매수금지 구간)")
                 return None
 
-            # 기본 출발 점수 65점 유지 (점수 인플레이션 방지: 순수 가산점 +25점 이상 획득 시에만 90점 도달)
-            score = 65.0
+            score = 65.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
             reasons = [f"20일선({int(ma20):,}원) 눌림목 지지", f"이격도 {dist_ma20:.1f}% 안정 구간"]
             tags = ['20일선눌림목', '추세우상향', '안정적손익비']
 
-            if regime_status == 'bull' and risk_val <= 35:
-                score += 3.0
-                reasons.append("🌞강세/안전 시황 통과(+3점)")
-            elif regime_status == 'bear':
-                score -= 5.0
-                reasons.append("⚠️약세 시황 방어 감점(-5점)")
-
-            score += min(amount_eok / 80.0, 10.0) + (5.0 - dist_ma20) * 3.0
-
             if sr:
                 if sr.get('is_60_breakout'):
-                    score += 10.0
+                    score += 15.0
                     reasons.append(sr.get('status', '60일 신고가 돌파'))
                     tags.extend(sr.get('tags', []))
                 elif sr.get('is_20_breakout'):
-                    score += 7.0
+                    score += 10.0
                     reasons.append(sr.get('status', '20일 박스권 상단 돌파'))
                     tags.extend(sr.get('tags', []))
 
             if micro and micro.get('vwap_diff_pct', -1.0) >= 0:
                 score += 3.0
-                reasons.append(f"당일 VWAP 상회(+{micro.get('vwap_diff_pct', 0):.1f}%)")
+                reasons.append(f"당일 VWAP 상회(+{micro['vwap_diff_pct']:.1f}%)")
 
             if major_flow.get('is_dual_buy'):
                 score += 5.0
                 reasons.append("🏦외인·기관 쌍끌이 매수(+5점)")
                 tags.append("쌍끌이수급")
             elif major_flow.get('is_organ_accum'):
-                score += 3.0
-                reasons.append("🏦기관 연속 순매수(+3점)")
+                score += 2.0
+                reasons.append("🏦기관 연속 순매수(+2점)")
             elif major_flow.get('is_major_dump'):
-                score -= 7.0
-                reasons.append("⚠️외인·기관 동시 순매도(-7점)")
+                score -= 5.0
+                reasons.append("⚠️외인·기관 동시 순매도(-5점)")
 
             if code in catalyst_codes:
-                score += 10.0
-                reasons.append("실적/호재 공시 연계(+10점)")
+                score += 12.0
+                reasons.append("실적/호재 공시 연계")
                 tags.append("실적모멘텀")
 
             ev_info = event_boost_map.get(name) or event_boost_map.get(code)
