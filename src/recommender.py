@@ -982,16 +982,6 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.warning(f"[종가베팅 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
                 continue
 
-            # [당일 +5.5~9.0% 어중간한 상승주 수급/돌파 검증 강화 (익일 시초 갭하락 방어)]
-            # 당일 +5.5% ~ +9.0% 구간은 외인·기관 쌍끌이 매수 또는 60일 신고가 돌파가 있을 때만 90점 통과 허용
-            is_60_bo = bool(sr and sr.get('is_60_breakout'))
-            if 5.5 <= change_pct <= 9.0 and not (major_flow.get('is_dual_buy') or is_60_bo):
-                logger.info(
-                    f"[종가베팅 +5.5~9% 수급/돌파 미달 차단] {name}({code}): 당일 +{change_pct:.1f}% "
-                    "(외인·기관 쌍끌이 매수 또는 60일 신고가 돌파 부재)"
-                )
-                continue
-
             # 점수 산정: 기본 40 + 수급파괴력(절대거래대금 20점 + 시총회전율 10점 = 최대 30점) + 캔들완성도(최대 15) + 지지저항돌파(최대 30)
             abs_vol_score = min(amount_eok / 40.0, 20.0)        # 거래대금 절대 규모 (800억 이상 시 20점 만점 -> 삼성SDS 827억, 삼성E&A 1172억 모두 만점!)
             turnover_score = min(turnover_pct * 2.0, 10.0)      # 시총 대비 회전율 가산점 (회전율 5% 이상 시 10점 만점 -> 중형 대장주 탄력 우대!)
@@ -1773,9 +1763,6 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 _score = min(_score, 74.0)
             elif _head_ratio > 0.38:
                 _score = min(_score, 79.0)
-            elif 5.5 <= _chg_pct <= 9.0 and not (_major_flow.get('is_dual_buy') or (_sr and _sr.get('is_60_breakout'))):
-                _score = min(_score, 88.0)
-                _reasons.append("⚠️ +5.5~9% 구간(쌍끌이/60일돌파 부재로 90점 제한)")
 
             _score = max(0.0, min(_score, 99.0))
             _hp_str = "HTS 조건식 포착 → AI 90점+ 시 종가/스윙 분할 매수, 90점 미만 시 관망"
