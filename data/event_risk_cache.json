@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16 19:41:58",
+  "updated_at": "2026-11-16 21:35:03",
   "overnight_risk": {
     "score": 0,
     "level": "GREEN",
@@ -106,6 +106,14 @@
   ],
   "burn_catalysts": [
     {
+      "corp_name": "엔텔스",
+      "ratio_pct": 11.79,
+      "burn_date": "2026-11-25",
+      "d_day": 9,
+      "boost_score": 10,
+      "tag": "🔥 시총 11.79% 소각 예정 (D-9)"
+    },
+    {
       "corp_name": "NICE",
       "ratio_pct": 7.45,
       "burn_date": "2026-11-27",
@@ -211,6 +219,11 @@
     }
   ],
   "stock_boost_map": {
+    "엔텔스": {
+      "boost_score": 10,
+      "tag": "🔥 시총 11.79% 소각 예정 (D-9)",
+      "reason": "자사주 시총 11.79% 영구소각 호재"
+    },
     "NICE": {
       "boost_score": 10,
       "tag": "🔥 시총 7.45% 소각 예정 (D-11)",
