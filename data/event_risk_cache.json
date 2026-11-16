@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16 11:42:02",
+  "updated_at": "2026-11-16 12:00:59",
   "overnight_risk": {
     "score": 0,
     "level": "GREEN",
@@ -122,6 +122,14 @@
       "tag": "🔥 시총 5.81% 소각 예정 (D-4)"
     },
     {
+      "corp_name": "HDC랩스",
+      "ratio_pct": 4.33,
+      "burn_date": "2026-11-23",
+      "d_day": 7,
+      "boost_score": 4,
+      "tag": "🔥 시총 4.33% 소각 예정 (D-7)"
+    },
+    {
       "corp_name": "더즌",
       "ratio_pct": 2.45,
       "burn_date": "2026-11-18",
@@ -196,6 +204,11 @@
       "boost_score": 7,
       "tag": "🔥 시총 5.81% 소각 예정 (D-4)",
       "reason": "자사주 시총 5.81% 영구소각 호재"
+    },
+    "HDC랩스": {
+      "boost_score": 4,
+      "tag": "🔥 시총 4.33% 소각 예정 (D-7)",
+      "reason": "자사주 시총 4.33% 영구소각 호재"
     },
     "더즌": {
       "boost_score": 0,
