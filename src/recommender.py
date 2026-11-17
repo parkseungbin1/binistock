@@ -99,6 +99,7 @@ _C_TIER_SOFT_HYPE_KEYWORDS = (
     '세미나', '간담회', '출시 예정', '기대감', 'MOU', '양해각서', 'LOI', '투자의향서',
     '추진', '검토', '타진', '인수설', '합병 추진', '우회상장',
     '임상 1상', '임상 2상', '임상 2a상', '임상 2b상', '임상 3상', '임상 진척', '전임상', '동물실험', '세포실험',
+    '유치 나섰', '유치에 나섰', '본격 유치', '멤버십 제도', '멤버십 도입', '프로모션', '캠페인', '팝업스토어', '할인 행사', '이벤트 개최', '리뉴얼 오픈',
 )
 
 
@@ -151,13 +152,13 @@ def classify_catalyst_impact(title: str, body: str = "", name: str = "", sector:
             'has_hard_catalyst': True,
         }
 
-    # 4순위: 🟡 C급 (-6점 / 바이오·홀딩스 -10점 — 확정 계약 없는 단순 행사·기대감·초기임상 재료소멸)
-    if any(ck in title_str for ck in _C_TIER_SOFT_HYPE_KEYWORDS):
+    # 4순위: 🟡 C급 (-6점 / 바이오·홀딩스 -10점 — 확정 계약 없는 단순 행사·홍보·기대감·초기임상 재료소멸)
+    if any(ck in text for ck in _C_TIER_SOFT_HYPE_KEYWORDS):
         penalty = -10.0 if is_bio_or_holding else -6.0
         return {
             'tier': 'C',
             'score_delta': penalty,
-            'tier_label': f"🟡C급 단발·재료소멸 주의({int(penalty)}점)",
+            'tier_label': f"🟡C급 단발·홍보·재료소멸 주의({int(penalty)}점)",
             'has_hard_catalyst': False,
         }
 
@@ -1064,11 +1065,11 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         (common['ChagesRatio'] <= max_chg_cap)  # +10% (AI 리스크 <= 45일 때 최대 +15% 조건부 허용)
     ].copy()
 
-    # 거래대금 상위 30개 종목 압축 (3,000억~30조 주도주 풀 전수 정밀 분석)
+    # 거래대금 상위 30개 종목 압축 (AI 리스크가 높더라도 종목·점수는 숨기지 않고 100% 투명하게 산출!)
     closing_pool = closing_pool.sort_values(by='Amount', ascending=False).head(30)
     if risk_val > 60 or str((regime or {}).get('status', 'neutral')).lower() == 'panic':
-        logger.info(f"[종가베팅 1차 시황필터 차단] AI 리스크 {risk_val}점 (>60점 매수금지 구간) ➔ 종가베팅 진입 전면 차단")
-        closing_pool = closing_pool.iloc[0:0]
+        logger.info(f"[종가베팅 시황 주의] AI 리스크 {risk_val}점 (>60점) ➔ 종목·점수는 투명하게 표시하되 실전 자동매수는 차단합니다.")
+    all_closing_evaluated = []
 
     for _, row in closing_pool.iterrows():
         code = str(row['Code'])
@@ -1241,13 +1242,12 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
 
             if cat_tier == 'F':
                 score = min(score, 74.0)
+            elif cat_tier == 'B' and cat_delta <= 0.0 and not major_flow.get('is_dual_buy') and code not in catalyst_codes:
+                # 확정 재료(S+/S/A/특징주)도 없고 외인·기관 쌍끌이도 없는 일반 기사는 차트만으로 90점을 넘지 못하도록 88점 상한 적용
+                score = min(score, 88.0)
             score = max(0.0, score)
-            # AI 종합 점수 90점 미만인 어중간한 종목은 원천 배제 (조건 미달 시 무포지션 100% 현금 보존)
-            if score < 90.0:
-                logger.info(f"[종가베팅 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점 (재료등급: {cat_tier})")
-                continue
-
-            closing_picks.append({
+            final_cl_score = int(round(min(score, 99.0)))
+            cand_item = {
                 'code': code,
                 'name': name,
                 'market': market,
@@ -1262,7 +1262,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'stop_loss': int(close_p * 0.98),
                 'stop_loss_pct': '-2.0%',
                 'holding_period': '당일 15:10~15:30 매수 → 익일 09:00~09:20 전량 분할 매도',
-                'score': int(min(score, 99)),
+                'score': final_cl_score,
                 'reason': " · ".join(reasons),
                 'tags': tags,
                 'sr_status': sr_status,
@@ -1277,8 +1277,22 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'vwap_diff_pct': micro.get('vwap_diff_pct', 0.0) if micro else 0.8,
                 'peak_time': micro.get('peak_time', '15:15') if micro else '15:15',
                 'closing_auction_diff': micro.get('closing_auction_diff', 0.0) if micro else 0.0,
-                'is_breakout': sr.get('is_20_breakout', False) or sr.get('is_60_breakout', False) if sr else False
-            })
+                'is_breakout': sr.get('is_20_breakout', False) or sr.get('is_60_breakout', False) if sr else False,
+                'is_sub_threshold': final_cl_score < 90,
+            }
+            all_closing_evaluated.append(cand_item)
+            if final_cl_score < 90:
+                logger.info(f"[종가베팅 90점 미달(관망 후보 보존)] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점 (재료등급: {cat_tier})")
+                continue
+
+            closing_picks.append(cand_item)
+
+    if not closing_picks and all_closing_evaluated:
+        # 90점 이상 종목이 0개인 날에도 상위 2개 차순위 후보의 점수를 숨기지 않고 화면에 투명하게 공개 (단, 자동매수는 차단)
+        all_closing_evaluated.sort(key=lambda x: x['score'], reverse=True)
+        for sub_p in all_closing_evaluated[:2]:
+            sub_p['holding_period'] = f"⏸️ AI {sub_p['score']}점 (<90점 기준 미달) — 화면 점수 공개용 · 자동매수 관망"
+            closing_picks.append(sub_p)
 
     closing_picks.sort(key=lambda x: x['score'], reverse=True)
     # [동일 섹터 쏠림 분산] 1·2등이 같은 섹터에 몰릴 경우 90점+ 타 섹터 최고점 후보를 2번 슬롯에 우선 배치
@@ -1399,11 +1413,10 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.warning(f"[스윙 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
                 return None
 
-            # 1차 시황 필터: AI 리스크 점수 60점 이하만 허용 (60점 초과 시 스윙/종가 전 전략 매수 차단 원칙과 통일)
+            # AI 리스크가 60점을 초과하더라도 스윙 후보의 점수는 숨기지 않고 산출하여 화면에 표시 (실제 매수 차단은 매매봇에서 수행)
             regime_status = str((regime or {}).get('status', 'neutral')).lower()
             if risk_val > 60 or regime_status == 'panic':
-                logger.info(f"[스윙 1차 시황필터 차단] {name}({code}): AI 리스크 {risk_val}점 (>60점 매수금지 구간)")
-                return None
+                logger.info(f"[스윙 시황 주의] {name}({code}): AI 리스크 {risk_val}점 (>60점) ➔ 종목·점수는 표시하되 자동매수는 보류")
 
             score = 65.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
             reasons = [f"20일선({int(ma20):,}원) 눌림목 지지", f"이격도 {dist_ma20:.1f}% 안정 구간"]
@@ -1459,10 +1472,9 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             if cat_tier_sw == 'F':
                 score = min(score, 74.0)
             score = min(99.0, max(0.0, score))
-            # AI 점수 90점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
-            if score < 90.0:
-                logger.info(f"[스윙 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점 (재료등급: {cat_tier_sw})")
-                return None
+            final_sw_score = int(round(min(score, 99.0)))
+            if final_sw_score < 90:
+                logger.info(f"[스윙 90점 미달(관망 후보 보존)] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점 (재료등급: {cat_tier_sw})")
 
             stg = resolve_swing_targets(close_p, regime=regime, market_context=market_context)
             return {
@@ -1483,8 +1495,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'target_3_pct': stg['target_3_pct'],
                 'stop_loss': stg['stop_loss'],
                 'stop_loss_pct': stg['stop_loss_pct'],
-                'holding_period': stg['holding_period'],
-                'score': int(round(min(score, 99.0))),
+                'holding_period': stg['holding_period'] if final_sw_score >= 90 else f"⏸️ AI {final_sw_score}점 (<90점 기준 미달) — 화면 점수 공개용 · 자동매수 관망",
+                'score': final_sw_score,
                 'reason': " · ".join(reasons),
                 'tags': list(dict.fromkeys(tags)),
                 'sr_status': sr.get('status', '') if sr else '',
@@ -1494,12 +1506,14 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'vwap': micro.get('vwap') if micro else int(close_p * 0.99),
                 'vwap_diff_pct': micro.get('vwap_diff_pct', 0.0) if micro else 0.0,
                 'marcap': int(marcap),
-                'marcap_str': marcap_str
+                'marcap_str': marcap_str,
+                'is_sub_threshold': final_sw_score < 90,
             }
         except Exception as e:
             logger.debug(f"스윙 후보 분석 예외({code}): {e}")
             return None
 
+    all_swing_evaluated = []
     swing_rows = swing_pool.to_dict('records')
     if swing_rows:
         with ThreadPoolExecutor(max_workers=6) as executor:
@@ -1508,12 +1522,18 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 try:
                     picked = fut.result()
                     if picked:
-                        swing_picks.append(picked)
+                        all_swing_evaluated.append(picked)
+                        if picked.get('score', 0) >= 90:
+                            swing_picks.append(picked)
                 except Exception as e:
                     logger.debug(f"스윙 스레드 결과 처리 예외: {e}")
 
-    swing_picks.sort(key=lambda x: (x['score'], x.get('amount_eok', 0)), reverse=True)
-    swing_picks = swing_picks[:3]
+    if not swing_picks and all_swing_evaluated:
+        all_swing_evaluated.sort(key=lambda x: (x['score'], x.get('amount_eok', 0)), reverse=True)
+        swing_picks = all_swing_evaluated[:2]
+    else:
+        swing_picks.sort(key=lambda x: (x['score'], x.get('amount_eok', 0)), reverse=True)
+        swing_picks = swing_picks[:3]
 
     # =========================================================================
     # Track 3: 🔥 당일 +15% 돌파 대장주 (기준봉 포착)
@@ -1974,6 +1994,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 _score = min(_score, 74.0)
             elif _head_ratio > 0.38:
                 _score = min(_score, 79.0)
+            elif _cat_tier == 'B' and _cat_delta <= 0.0 and not _major_flow.get('is_dual_buy') and _code not in catalyst_codes:
+                _score = min(_score, 88.0)
 
             _score = max(0.0, min(_score, 99.0))
             _hp_str = "HTS 조건식 포착 → AI 90점+ 시 종가/스윙 분할 매수, 90점 미만 시 관망"
@@ -2034,13 +2056,14 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             p['catalyst_body'] = ''
         p['chart_url'] = f"https://m.stock.naver.com/domestic/stock/{p['code']}/total"
 
-    # [STEP 4] 익일 시초가 성과 자동 추적을 위한 당일 종가베팅 및 스윙 종목 기록
+    # [STEP 4] 익일 시초가 성과 자동 추적을 위한 당일 종가베팅 및 스윙 종목 기록 (90점 이상 실전 통과 종목만 성과 기록)
     try:
         try:
             from src.track_record import record_closing_picks
         except ImportError:
             from track_record import record_closing_picks
-        record_closing_picks(closing_picks, risk_score=risk_val)
+        valid_cl_records = [p for p in closing_picks if p.get('score', 0) >= 90 and not p.get('is_sub_threshold')]
+        record_closing_picks(valid_cl_records, risk_score=risk_val)
     except Exception as e:
         logger.warning(f"종가베팅 트랙 레코드 기록 실패: {e}")
 
@@ -2049,7 +2072,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             from src.swing_track_record import record_swing_picks
         except ImportError:
             from swing_track_record import record_swing_picks
-        record_swing_picks(swing_picks, risk_score=risk_val)
+        valid_sw_records = [p for p in swing_picks if p.get('score', 0) >= 90 and not p.get('is_sub_threshold')]
+        record_swing_picks(valid_sw_records, risk_score=risk_val)
     except Exception as e:
         logger.warning(f"스윙 트랙 레코드 기록 실패: {e}")
 

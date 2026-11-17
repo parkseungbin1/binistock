@@ -826,6 +826,51 @@
         }
       ],
       "evaluated": false
+    },
+    {
+      "date": "2026-11-17",
+      "picks": [
+        {
+          "code": "064400",
+          "name": "LG씨엔에스",
+          "market": "KOSPI",
+          "sector": "AI/로봇",
+          "catalyst": "[공시] 엘지씨엔에스 단일판매ㆍ공급계약체결",
+          "catalyst_url": "https://m.stock.naver.com/domestic/stock/064400/disclosure",
+          "catalyst_source": "DART 전자공시",
+          "entry_price": 77200,
+          "price": 77200,
+          "change_pct": 0.26,
+          "amount_eok": 528,
+          "marcap": 7479595185600,
+          "marcap_str": "7조 4,796억",
+          "target_1": 81060,
+          "target_1_pct": "+5.0%",
+          "target_2": 84148,
+          "target_2_pct": "+9.0%",
+          "stop_loss": 74884,
+          "stop_loss_pct": "-3.0%",
+          "rule_v": 2,
+          "score": 99,
+          "reason": "20일선(75,640원) 눌림목 지지 · 이격도 2.0% 안정 구간 · 당일 VWAP 상회(+0.4%) · 🏦기관 연속 순매수(+2점) · 🟢S+급 초특급 확정호재(+15점)",
+          "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
+          "tags": [
+            "20일선눌림목",
+            "추세우상향",
+            "안정적손익비",
+            "실적모멘텀"
+          ],
+          "chart_url": "https://m.stock.naver.com/domestic/stock/064400/total",
+          "highest_price": 77200,
+          "lowest_price": 77200,
+          "max_return_pct": 0.0,
+          "status": "진행중",
+          "completed": false,
+          "holding_days": 0
+        }
+      ],
+      "evaluated": false,
+      "risk_score": 40
     }
   ]
 }
