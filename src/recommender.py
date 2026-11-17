@@ -216,9 +216,23 @@ def fetch_stock_catalyst(code, name="", sector=""):
     elif '씨엔에스' in short_name or 'CNS' in short_name:
         aliases.extend(['LG CNS', 'LG씨엔에스', '엘지씨엔에스'])
 
-    # 1. DART 공시 우선 확인 (최근 5일 이내 공식 확정 경영 호재만 인정 — 한 달 전 구버전 공시 배제)
+    # 1. DART 공시 우선 확인 (당일 기준: 직전 영업일 15:30 장마감 이후 ~ 오늘 발생한 신규 확정 호재 공시만 인정)
+    now_kst = datetime.now(KST)
+    today_ymd = now_kst.strftime('%Y%m%d')
+    prev_bday_dt = now_kst - timedelta(days=1)
+    while prev_bday_dt.weekday() >= 5:
+        prev_bday_dt -= timedelta(days=1)
+    prev_ymd = prev_bday_dt.strftime('%Y%m%d')
+
+    def _is_today_fresh(raw_dt_str: str) -> bool:
+        digits = re.sub(r'[^0-9]', '', str(raw_dt_str or ''))
+        if len(digits) < 8:
+            return False
+        ymd, hm = digits[:8], (digits[8:12] if len(digits) >= 12 else '0900')
+        return (ymd == today_ymd) or (ymd == prev_ymd and hm >= '1530')
+
     recent_5d_dates = {
-        (datetime.now(KST) - timedelta(days=offset)).strftime('%Y%m%d')
+        (now_kst - timedelta(days=offset)).strftime('%Y%m%d')
         for offset in range(6)
     }
     disc_info = None
@@ -231,12 +245,12 @@ def fetch_stock_catalyst(code, name="", sector=""):
                 '단일판매', '공급계약', '공사수주', '주식소각', '소각결정', '자기주식취득',
                 '신규시설투자', '기업가치제고', '무상증자', '공개매수', '잠정실적', '영업실적',
             ]
-            bad_disc_words = ('해지', '취소', '철회', '기재정정', '자기주식처분', '유상증자', '전환사채', '전환청구권')
+            bad_disc_words = ('해지', '취소', '철회', '기재정정', '자기주식처분', '유상증자', '전환사채', '전환청구권', '변경상장')
             for d in discs:
                 title = d.get('title', '')
-                d_dt = re.sub(r'[^0-9]', '', str(d.get('datetime') or d.get('date') or d.get('regDt') or ''))[:8]
-                if d_dt and d_dt not in recent_5d_dates:
-                    continue  # 최근 5일(금주) 공시가 아니면 당일 호재 모멘텀에서 제외
+                raw_d_dt = d.get('datetime') or d.get('date') or d.get('regDt') or ''
+                if not _is_today_fresh(raw_d_dt):
+                    continue  # 당일(전일 장마감 이후~오늘) 공시가 아니면 호재 점수 미부여
                 if any(bw in title for bw in bad_disc_words):
                     continue
                 if any(k in title for k in impact_keywords):
@@ -255,7 +269,7 @@ def fetch_stock_catalyst(code, name="", sector=""):
     except Exception:
         pass
 
-    # 2. 실시간 종목 뉴스 클러스터 전수 분석 (최대 30개 — 최근 5일 이내 & 제목에 종목명/약칭이 포함된 전용 기사만 엄선)
+    # 2. 실시간 종목 뉴스 클러스터 전수 분석 (최대 30개 — 호재 가점은 당일 기준, 악재 감시는 최근 5일 감시)
     market_noise = [
         '코스피', '코스닥', '지수', '마감시황', '시황종합', '환율', '외인', '외국인 반도체',
         '투자30', '마켓뷰', '오후시황', '장중 4%', '5500선', '5400선', 'IPO 철회', '코스피5550', '프리마켓서',
@@ -269,9 +283,11 @@ def fetch_stock_catalyst(code, name="", sector=""):
             clusters = json.loads(resp.read().decode('utf-8'))
             for cl in clusters:
                 for it in cl.get('items', []):
-                    n_dt = re.sub(r'[^0-9]', '', str(it.get('datetime') or ''))[:8]
+                    raw_n_dt = str(it.get('datetime') or '')
+                    n_dt = re.sub(r'[^0-9]', '', raw_n_dt)[:8]
                     if n_dt and n_dt not in recent_5d_dates:
                         continue  # 5일 지난 오래된 기사 제외
+                    is_fresh_today = _is_today_fresh(raw_n_dt)
                     raw_title = it.get('titleFull') or it.get('title', '')
                     title = html.unescape(raw_title).replace('<b>', '').replace('</b>', '').strip()
                     title = re.sub(r'\[종\.\.\.?\]?', '', title).strip()
@@ -287,6 +303,9 @@ def fetch_stock_catalyst(code, name="", sector=""):
                     body_txt = html.unescape(it.get('body', '')).replace('<b>', '').replace('</b>', '').strip()
                     body_clean = re.sub(r'\s+', ' ', body_txt)[:110]
                     imp = classify_catalyst_impact(title, body=body_clean, name=short_name, sector=sector, code=code, is_disclosure=False)
+                    if not is_fresh_today and imp.get('score_delta', 0) > 0:
+                        # 어제 장중 이전의 지난 호재 기사는 당일 점수 가산에서 제외 (중립 B급 0점 처리)
+                        imp = {'tier': 'B', 'score_delta': 0.0, 'tier_label': '⚪B급 기반영 뉴스(0점)', 'has_hard_catalyst': False}
 
                     # 후보 정렬 점수: 해당 종목 전용 기사(50) + 등급별 우선순위(S+/S/A 또는 중요 F/C 신호 포착)
                     rank_score = 50 + int(abs(imp['score_delta']) * 2) + (15 if '[특징주]' in title else 0)
