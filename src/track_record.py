@@ -314,7 +314,8 @@ def evaluate_latest_performance():
     avg_l = (sum(eval_losses) / len(eval_losses)) if eval_losses else 0.0
     rr = (avg_w / avg_l) if avg_l > 0 else 2.0
 
-    msg = f"📊 <b>[전일({target['date']}) 종가베팅 시초가 결과 피드백]</b>\n"
+    sim_tag = " · 🛡️ 리스크 차단(미매수) 사후검증" if target.get('blocked') else ""
+    msg = f"📊 <b>[전일({target['date']}) 종가베팅 시초가 결과 피드백{sim_tag}]</b>\n"
     msg += "\n".join(results) + "\n"
     if total_eval >= 3:
         msg += (

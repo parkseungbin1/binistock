@@ -191,7 +191,10 @@ def get_recent_stopped_codes(lookback_days=10):
             if h.get('blocked', False) or h.get('date', '') < cutoff:
                 continue
             for p in h.get('picks', []):
-                if '손절' in str(p.get('status', '')) and p.get('code'):
+                p_st = str(p.get('status', ''))
+                if p.get('is_blocked_sim') or '차단' in p_st or '관망' in p_st:
+                    continue
+                if '손절' in p_st and p.get('code'):
                     codes.add(str(p['code']))
         return codes
     except Exception as e:
@@ -220,6 +223,8 @@ def evaluate_swing_performance():
         all_done = True
 
         for p in picks:
+            if is_h_blocked and not p.get('is_blocked_sim'):
+                p['is_blocked_sim'] = True
             # 규칙 버전이 다르면 재판정
             if p.get('rule_v') != SWING_RULE_VERSION:
                 p['completed'] = False
