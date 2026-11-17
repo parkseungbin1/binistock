@@ -84,8 +84,8 @@ def save_history(data):
         logger.warning(f"트랙 레코드 저장 실패: {e}")
 
 
-def record_closing_picks(picks, risk_score=None):
-    """오늘 15:10 종가베팅 추천 종목 기록 (재료, 섹터 포함). risk_score: 추천 시점 AI 리스크 점수(매일 저장)"""
+def record_closing_picks(picks, risk_score=None, is_blocked=False):
+    """오늘 15:10 종가베팅 추천 종목 기록 (재료, 섹터 포함). 리스크 차단/관망 종목도 사후 주가 검증을 위해 등록"""
     if not picks:
         return
     now = datetime.now(KST)
@@ -142,17 +142,24 @@ def record_closing_picks(picks, risk_score=None):
             'next_resistance': p.get('next_resistance', f"{t1:,}원 (+3% 목표)"),
             'chart_url': p.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{p['code']}/total")
         }
+        if is_blocked:
+            item['status'] = '🛡️ AI 리스크 차단 (미매수 사후추적)'
+            item['risk_score'] = int(risk_score) if risk_score is not None else 65
+        elif p.get('is_sub_threshold') or int(p.get('score', 92)) < 90:
+            item['status'] = f"⏸️ 90점 미달 관망 (AI {p.get('score', 0)}점 · 사후추적)"
         pick_items.append(item)
 
     if existing:
         existing[0]['picks'] = pick_items
+        existing[0]['blocked'] = bool(is_blocked)
         if risk_score is not None and existing[0].get('risk_score') is None:
             existing[0]['risk_score'] = int(risk_score)
     else:
         new_rec = {
             'date': date_str,
             'picks': pick_items,
-            'evaluated': False
+            'evaluated': False,
+            'blocked': bool(is_blocked),
         }
         if risk_score is not None:
             new_rec['risk_score'] = int(risk_score)
@@ -291,7 +298,8 @@ def evaluate_latest_performance():
     for h in history:
         if h.get('evaluated') and not h.get('blocked'):  # 리스크 차단일(미매수)은 승률 통계에서 제외
             for p in h.get('picks', []):
-                if 'is_success' in p and '차단' not in str(p.get('status', '')):
+                p_st = str(p.get('status', ''))
+                if 'is_success' in p and '차단' not in p_st and '관망' not in p_st:
                     all_evaluated_picks.append(p)
 
     total_eval = len(all_evaluated_picks)
@@ -471,9 +479,10 @@ def render_monthly_history_html():
     for h in history:
         is_h_blocked = h.get('blocked', False)
         for p in h.get('picks', []):
-            if is_h_blocked or '차단' in p.get('status', ''):
+            p_st = str(p.get('status', ''))
+            if is_h_blocked or '차단' in p_st or '관망' in p_st:
                 defense_count += 1
-                continue  # 리스크 차단으로 현금 100% 보존된 종목은 실체결 통계에서 분리
+                continue  # 리스크 차단/관망으로 현금 100% 보존된 종목은 실체결 승률 통계에서 분리 (사후 결과는 아래 카드에 표시)
             if p.get('score') is None:
                 continue  # 점수 미부여 초기 샘플/과거 레코드 제외 (승률/누적수익 왜곡 방지)
 
@@ -551,11 +560,27 @@ def render_monthly_history_html():
             is_win = p.get('is_success')
             status = p.get('status', '')
             p_blocked = is_blocked or ('차단' in status)
+            p_watch = ('관망' in status)
 
-            if p_blocked:
-                risk_pt = p.get('risk_score', h.get('risk_score', 56))
-                badge = '<span class="res-badge shield" style="background:#065f46; color:#34d399; border:1px solid #059669; font-weight:700;">🛡️ AI 리스크 차단 (현금 보존)</span>'
-                res_str = f"오늘 AI 리스크 <b>{risk_pt}점 [DANGER]</b> 감지 ➔ 당일 신규 매수 전면 차단 · <b>100% 현금 보존</b> (원금 손실 0% 방어 성공) {badge}"
+            if p_blocked or p_watch:
+                risk_pt = p.get('risk_score', h.get('risk_score', 65))
+                if p_blocked:
+                    badge = '<span class="res-badge shield" style="background:#065f46; color:#34d399; border:1px solid #059669; font-weight:700;">🛡️ AI 리스크 차단 (미매수)</span>'
+                    prefix_txt = f"AI 리스크 <b>{risk_pt}점</b> 매수차단"
+                else:
+                    badge = '<span class="res-badge wait">⏸️ 90점 미달 관망 (미매수)</span>'
+                    prefix_txt = f"90점 미달 관망(AI {p.get('score', 0)}점)"
+                if gap is not None and open_p is not None:
+                    gap_class = "up" if gap > 0 else "down"
+                    high_p = p.get('next_high_price')
+                    high_pct = p.get('high_pct')
+                    high_str = f" · 장중최고 <b>{high_p:,}원</b> (<span class='{'up' if high_pct and high_pct > 0 else 'down'}'>{high_pct:+.2f}%</span>)" if high_p and high_pct is not None else ""
+                    res_str = f"{prefix_txt} ➔ <b>[사후 검증]</b> 종가 {close_p:,}원 → 시초가 <b>{open_p:,}원</b> (<span class='{gap_class}'>{gap:+.2f}%</span>){high_str} {badge}"
+                elif gap is not None:
+                    gap_class = "up" if gap > 0 else "down"
+                    res_str = f"{prefix_txt} ➔ <b>[사후 검증]</b> 익일 갭 (<span class='{gap_class}'>{gap:+.2f}%</span>) {badge}"
+                else:
+                    res_str = f"{prefix_txt} · 종가 <b>{close_p:,}원</b> ➔ <i>내일 아침 09:00 시초가 사후 검증 대기</i> {badge}"
             elif gap is not None:
                 gap_class = "up" if gap > 0 else "down"
                 badge = '<span class="res-badge win">🎯 익절 성공</span>' if is_win else ('<span class="res-badge even">✨ 보합</span>' if gap >= 0 else '<span class="res-badge loss">🔻 손절/이탈</span>')

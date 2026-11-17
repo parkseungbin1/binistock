@@ -397,8 +397,8 @@ def is_common_stock(row):
     if stock_end_type and stock_end_type != 'stock':
         return False
     name = str(row.get('Name', '')).strip()
-    code = str(row.get('Code', '')).strip()
-    if len(code) != 6 or not code.isdigit():
+    code = str(row.get('Code', '')).strip().upper()
+    if len(code) != 6 or not code.isalnum():
         return False
     if code[-1] != '0':  # 우선주 제외 (0으로 끝나는 본주만 허용)
         return False
@@ -1786,26 +1786,12 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             except Exception as _ce:
                 logger.warning(f"키움 조건검색 캐시 로드 예외: {_ce}")
 
-        # PC/봇 OFF 등으로 당일 HTS 캐시가 없을 때: 클라우드 자체 '시총 1000억+ & 60일 지표 돌파' 스캔 폴백
-        if not _hts_cache_valid and common is not None and not common.empty:
-            _fb_pool = common[
-                (common['Marcap'] >= 1000 * 1e8) &
-                (common['ChagesRatio'] >= 8.0) &
-                (common['Amount'] >= 80 * 1e8)
-            ].sort_values(by=['ChagesRatio', 'Amount'], ascending=[False, False]).head(12)
-            for _, _fr in _fb_pool.iterrows():
-                _fc = str(_fr['Code'])
-                _fn = str(_fr['Name'])
-                _sr_chk = analyze_support_resistance(_fc, _fn)
-                _above_ma60 = False
-                if _sr_chk:
-                    _above_ma60 = bool(_sr_chk.get('is_60_breakout') or _sr_chk.get('is_20_breakout') or _sr_chk.get('disp5_pct', 0) >= 0)
-                if _above_ma60:
-                    _target_items.append({'code': _fc, 'name': _fn})
-                if len(_target_items) >= 6:
-                    break
+        # 클라우드 임의 폴백(가짜 조건식 생성) 영구 비활성화: 실제 키움 HTS 캐시가 없거나 0종목이면 정직하게 0건 표시
+        if not _hts_cache_valid:
+            logger.info("[조건검색식] 당일 키움 HTS 실시간 캐시가 없어 가짜 폴백 없이 0건으로 유지합니다.")
             condition_meta['updated_at'] = _kst_now.strftime('%Y-%m-%d %H:%M:%S')
             condition_meta['is_live_hts'] = False
+            condition_meta['source'] = 'KIWOOM_HTS_WS_EMPTY'
 
         # 공통 데이터 프레임 인덱싱 + 누락 종목 네이버 실시간 시세 보완
         _common_map = {}
@@ -2059,14 +2045,13 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             p['catalyst_body'] = ''
         p['chart_url'] = f"https://m.stock.naver.com/domestic/stock/{p['code']}/total"
 
-    # [STEP 4] 익일 시초가 성과 자동 추적을 위한 당일 종가베팅 및 스윙 종목 기록 (90점 이상 실전 통과 종목만 성과 기록)
+    # [STEP 4] 익일 시초가 성과 자동 추적을 위한 당일 종가베팅 및 스윙 종목 기록 (리스크 차단/관망 후보도 사후 검증용 등록)
     try:
         try:
             from src.track_record import record_closing_picks
         except ImportError:
             from track_record import record_closing_picks
-        valid_cl_records = [p for p in closing_picks if p.get('score', 0) >= 90 and not p.get('is_sub_threshold')]
-        record_closing_picks(valid_cl_records, risk_score=risk_val)
+        record_closing_picks(closing_picks, risk_score=risk_val, is_blocked=(risk_val > 60))
     except Exception as e:
         logger.warning(f"종가베팅 트랙 레코드 기록 실패: {e}")
 
@@ -2075,8 +2060,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             from src.swing_track_record import record_swing_picks
         except ImportError:
             from swing_track_record import record_swing_picks
-        valid_sw_records = [p for p in swing_picks if p.get('score', 0) >= 90 and not p.get('is_sub_threshold')]
-        record_swing_picks(valid_sw_records, risk_score=risk_val)
+        record_swing_picks(swing_picks, risk_score=risk_val, is_blocked=(risk_val > 60))
     except Exception as e:
         logger.warning(f"스윙 트랙 레코드 기록 실패: {e}")
 

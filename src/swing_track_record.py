@@ -92,8 +92,8 @@ def cleanup_old_swing_records(data):
     return data
 
 
-def record_swing_picks(picks, risk_score=None):
-    """당일 2~5일 스윙 추천 종목 기록 (1차 +5%, 2차 +9%, 손절 -3%). risk_score: 추천 시점 AI 리스크 점수(매일 저장)"""
+def record_swing_picks(picks, risk_score=None, is_blocked=False):
+    """당일 2~5일 스윙 추천 종목 기록 (1차 +5%, 2차 +9%, 손절 -3%). 리스크 차단/관망 종목도 사후 주가 검증을 위해 등록"""
     if not picks:
         return
     now = datetime.now(KST)
@@ -121,6 +121,7 @@ def record_swing_picks(picks, risk_score=None):
         t1 = int(round(entry_p * (1 + T1_PCT / 100)))
         t2 = int(round(entry_p * (1 + T2_PCT / 100)))
         sl = int(round(entry_p * (1 + SL_PCT / 100)))
+        is_sim_only = bool(is_blocked or p.get('is_sub_threshold') or int(p.get('score', 92)) < 90)
         item = {
             'code': p['code'],
             'name': p['name'],
@@ -150,7 +151,8 @@ def record_swing_picks(picks, risk_score=None):
             'highest_price': entry_p,
             'lowest_price': entry_p,
             'max_return_pct': 0.0,
-            'status': '진행중',
+            'status': '🛡️ 리스크 차단 (사후추적)' if is_blocked else ('⏸️ 90점 미달 관망 (사후추적)' if is_sim_only else '진행중'),
+            'is_blocked_sim': is_sim_only,
             'completed': False,
             'holding_days': 0
         }
@@ -159,13 +161,15 @@ def record_swing_picks(picks, risk_score=None):
     if existing:
         if not existing[0].get('evaluated', False):
             existing[0]['picks'] = pick_items
+            existing[0]['blocked'] = bool(is_blocked)
         if risk_score is not None and existing[0].get('risk_score') is None:
             existing[0]['risk_score'] = int(risk_score)
     else:
         new_rec = {
             'date': date_str,
             'picks': pick_items,
-            'evaluated': False
+            'evaluated': False,
+            'blocked': bool(is_blocked),
         }
         if risk_score is not None:
             new_rec['risk_score'] = int(risk_score)
@@ -210,8 +214,7 @@ def evaluate_swing_performance():
         h_date = h.get('date', '')
         if h_date >= today_str:
             continue
-        if h.get('blocked', False):
-            continue  # AI 리스크 차단일은 시뮬레이션 불필요 (현금 100% 보존 완료)
+        is_h_blocked = bool(h.get('blocked', False))
 
         picks = h.get('picks', [])
         all_done = True
@@ -372,9 +375,10 @@ def render_monthly_swing_history_html():
     for h in history:
         is_h_blocked = h.get('blocked', False)
         for p in h.get('picks', []):
-            if is_h_blocked or '차단' in p.get('status', ''):
+            p_st = str(p.get('status', ''))
+            if is_h_blocked or p.get('is_blocked_sim') or '차단' in p_st or '관망' in p_st:
                 defense_count += 1
-                continue  # 리스크 차단으로 현금 100% 보존된 스윙 종목은 실체결 통계에서 분리
+                continue  # 리스크 차단/관망으로 현금 100% 보존된 스윙 종목은 실체결 승률 통계에서 분리
 
             if not p.get('completed'):
                 continue
@@ -447,15 +451,20 @@ def render_monthly_swing_history_html():
             h_days = p.get('holding_days', 0)
             marcap_str = p.get('marcap_str', '')
             marcap_tag = f" <span class='hist-marcap'>시총 {marcap_str}</span>" if marcap_str else ""
-            p_blocked = is_blocked or ('차단' in status)
+            p_blocked = is_blocked or ('차단' in status) or bool(p.get('is_blocked_sim'))
 
             fin_ret = p.get('final_return_pct', 0.0) or 0.0
             completed = p.get('completed', False)
+            low_p = p.get('lowest_price', entry_p)
+            min_ret = round(((low_p - entry_p) / entry_p) * 100, 2) if entry_p > 0 else 0.0
 
             if p_blocked:
-                risk_pt = p.get('risk_score', h.get('risk_score', 56))
-                badge = '<span class="res-badge shield" style="background:#065f46; color:#34d399; border:1px solid #059669; font-weight:700;">🛡️ AI 리스크 차단 (현금 보존)</span>'
-                res_str = f"오늘 AI 리스크 <b>{risk_pt}점 [DANGER]</b> 감지 ➔ 스윙 신규 매수 전면 차단 · <b>100% 현금 보존</b> (하락장 원금 방어 성공) {badge}"
+                risk_pt = p.get('risk_score', h.get('risk_score', 65))
+                badge = '<span class="res-badge shield" style="background:#065f46; color:#34d399; border:1px solid #059669; font-weight:700;">🛡️ AI 리스크 차단 (미매수)</span>'
+                if completed or h_days > 0:
+                    res_str = f"AI 리스크 <b>{risk_pt}점</b> 매수차단 ➔ <b>[사후 {h_days}일 검증]</b> 기준가 {entry_p:,}원 → 최고 <b>{high_p:,}원</b> (<span class='{'up' if max_ret>0 else 'down'}'>{max_ret:+.2f}%</span>) · 최저 {min_ret:+.2f}% ({status}) {badge}"
+                else:
+                    res_str = f"AI 리스크 <b>{risk_pt}점</b> 매수차단 · 기준가 <b>{entry_p:,}원</b> ➔ <i>향후 2~5일 사후 주가 검증 대기</i> {badge}"
             elif '2차' in status:
                 badge = f'<span class="res-badge win-gold">🚀 2차 전량 달성 (+{max_ret:.2f}%)</span>'
             elif '1차' in status:
@@ -469,8 +478,6 @@ def render_monthly_swing_history_html():
             else:
                 badge = f'<span class="res-badge wait">⏳ 진행중 ({h_days}일차, 최고 {max_ret:+.2f}%)</span>'
 
-            low_p = p.get('lowest_price', entry_p)
-            min_ret = round(((low_p - entry_p) / entry_p) * 100, 2) if entry_p > 0 else 0.0
             if not p_blocked:
                 if '손절' in status:
                     res_str = f"{h_date} 종가 {entry_p:,}원 → 최저 <b>{low_p:,}원</b> (<span class='down'>{min_ret:+.2f}%</span> · 1차목표 +5% 미달, 반등최고 {max_ret:+.2f}%) {badge}"
