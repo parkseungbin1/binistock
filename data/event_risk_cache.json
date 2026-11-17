@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-17 15:12:03",
+  "updated_at": "2026-11-17 15:42:31",
   "overnight_risk": {
     "score": 0,
     "level": "GREEN",
@@ -120,6 +120,14 @@
       "d_day": 8,
       "boost_score": 10,
       "tag": "🔥 시총 11.79% 소각 예정 (D-8)"
+    },
+    {
+      "corp_name": "우진아이엔에스",
+      "ratio_pct": 7.63,
+      "burn_date": "2026-12-18",
+      "d_day": 31,
+      "boost_score": 10,
+      "tag": "🔥 시총 7.63% 소각 예정 (D-31)"
     },
     {
       "corp_name": "NICE",
@@ -276,6 +284,11 @@
       "boost_score": 10,
       "tag": "🔥 시총 11.79% 소각 예정 (D-8)",
       "reason": "자사주 시총 11.79% 영구소각 호재"
+    },
+    "우진아이엔에스": {
+      "boost_score": 10,
+      "tag": "🔥 시총 7.63% 소각 예정 (D-31)",
+      "reason": "자사주 시총 7.63% 영구소각 호재"
     },
     "NICE": {
       "boost_score": 10,
