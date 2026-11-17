@@ -3,8 +3,6 @@ Swing Simulator 모듈 (What‑If 엔진)
 스윙 추천 종목을 기반으로 사용자가 목표 비율(+3%, +5%, +10%) 및 손절 비율(-2%, -3%)을 시뮬레이션할 수 있습니다.
 100% 무료 순수 파이썬 + 클라이언트 사이드 실시간 인터랙션 지원.
 """
-import json
-from pathlib import Path
 
 def simulate_profit(entry_price: int, target_pct: float, stop_loss_pct: float = -2.0) -> dict:
     """단일 시뮬레이션 결과 반환"""

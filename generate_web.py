@@ -69,7 +69,7 @@ def generate_html():
     # 2-1. AI 실전 추천 종목 수집 (종가베팅 & 2~5일 스윙)
     # 2-0. 실시간 복합 AI 리스크 사전 계산
     try:
-        from src.risk_score import compute_risk_score, get_risk_assessment
+        from src.risk_score import compute_risk_score
         vix_val_init = float(str(vix_close).replace(',', '')) if vix_close else 20.0
         pre_risk_ctx = {
             'fut_ratio': fut_ratio if fut_ratio is not None else 0.0,
@@ -200,6 +200,7 @@ def generate_html():
                 break
         latest_record = get_latest_closing_record()
     except Exception as e:
+        print(f"⚠️ 최신 종가베팅 기록 로드 실패: {e}")
         latest_record = None
 
     try:
@@ -228,6 +229,7 @@ def generate_html():
         elif ai_risk_score > 60:
             recommended_invest_pct = 0
     except Exception as e:
+        print(f"⚠️ 칼만 켈리 보정 실패(기본 켈리값 사용): {e}")
         kalman_res = None
         kalman_win_rate = kelly_win_rate
         kalman_rr = kelly_rr
@@ -696,9 +698,6 @@ def generate_html():
 
     sox_display = sox_close or "-"
     sox_badge = format_ratio(sox_ratio)
-
-    nas_display = nas_close or "-"
-    nas_badge = format_ratio(nas_ratio)
 
     fx_display = f"{fx_close}원" if fx_close else "-"
     fx_badge = format_ratio(fx_ratio)

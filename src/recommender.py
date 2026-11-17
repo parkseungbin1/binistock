@@ -43,15 +43,160 @@ def format_marcap(marcap):
         return ""
 
 
-def fetch_stock_catalyst(code, name=""):
+_CATALYST_CACHE = {}
+
+# ─── 전 종목 5단계(S+ / S / A / B / C / F) 뉴스·공시 정밀 키워드 사전 ───
+_F_TIER_NEGATIVE_KEYWORDS = (
+    '어닝 쇼크', '어닝쇼크', '컨센서스 하회', '기대치 하회', '예상치 하회',
+    '적자전환', '적자지속', '적자확대', '영업익 감소', '영업이익 감소',
+    '순손실', '역성장', '실적 부진', '매출 감소', '가이던스 하향',
+    '목표가 하향', '목표주가 하향', '목표가↓', '목표주가↓',
+    '계약 해지', '계약해지', '공급계약 해지', '단일판매해지',
+    '압박 우려', '압박', '노조', '파업', '소송', '피소', '고발', '압수수색',
+    '횡령', '배임', '불발', '무산', '철회', '차질', '논란', '엇갈린',
+    '급락', '하락세', '리콜', '가동 중단', '납품 지연',
+    '임상 실패', '임상 중단', '보완요구', 'CRL',
+    '유상증자', '전환사채', '전환청구권', '신주인수권', '교환사채', '추가상장',
+    '감자결정', '무상감자', '자기주식처분', '자사주 처분', '블록딜', '시간외대량매매',
+    '장내매도', '보호예수 해제', '락업 해제', '공매도 과열',
+    '투자주의', '투자경고', '투자위험', '단기과열', '불성실공시', '관리종목', '감사의견 거절',
+)
+_F_TIER_NEG_REGEX = re.compile(
+    r'(?:영업익|영업이익|순이익|매출|실적).{0,24}?(?:\d+(?:\.\d+)?%\s*↓|감소|급감|하락|반토막|축소)'
+    r'|(?:단일판매|공급계약|수주|합병|인수).{0,24}?(?:해지|취소|철회|무산|연기|지연|축소)'
+)
+
+_S_PLUS_KEYWORDS = (
+    '단일판매', '공급계약체결', '공급계약 체결', '공사수주',
+    '주식소각결정', '주식 소각 결정', '자사주 소각', '소각결정', '공개매수', '무상증자결정',
+    '어닝 서프라이즈', '어닝서프라이즈', '흑자전환', '사상 최대', '역대 최대',
+    'FDA 승인', 'FDA 최종', '품목허가 승인', '품목허가 획득', 'EMA 승인',
+    '기술수출 본계약', '퀄테스트 통과', '퀄테스트 최종 통과',
+)
+_S_PLUS_SURGE_REGEX = re.compile(
+    r'(?:영업익|영업이익|순이익).{0,28}?(?:[1-9]\d{2,}(?:\.\d+)?%\s*(?:↑|증가|급증|폭증)|폭증)'
+)
+
+_S_TIER_KEYWORDS = (
+    '수주 잭팟', '대규모 수주', '수주 급증', '공급 계약', '공급계약', '장기공급', '독점 공급',
+    '본계약', '우선협상대상자', '양산 개시', '납품 시작', '초도물량', '확정발주', '완판',
+    '신규시설투자', '컨센서스 상회', '기대치 상회', '턴어라운드', '가이던스 상향',
+    '자기주식취득결정', '자사주 취득', '자사주 매입', '배당 확대', '기업가치제고', '밸류업',
+    '마일스톤 유입', '마일스톤 수령', '기술이전 계약', 'MSCI 편입', '코스피200 편입', '코스닥150 편입', '장내매수',
+)
+_S_TIER_EARNINGS_REGEX = re.compile(
+    r'(?:영업익|영업이익).{0,28}?(?:\d+(?:\.\d+)?%\s*(?:↑|증가)|호실적)'
+)
+
+_A_TIER_KEYWORDS = (
+    '목표가 상향', '목표주가 상향', '목표가↑', '목표주가↑', '비중확대', '최선호주', '탑픽', 'Top Pick', '커버리지 개시',
+    'CAPA 증설', '공장 증설', '증설', '풀가동', '판가 인상', '국책과제', '시장점유율 1위', '국내 1위',
+    '신작 흥행', '수출 호조', '신규 고객사', '관세 반사이익', '수주 확대', '공급 확대', '공급 호조', '납품',
+)
+
+_C_TIER_SOFT_HYPE_KEYWORDS = (
+    '전시회 참가', '전시회 출품', '박람회 참가', '박람회', '학회 발표', '학회 참가', '포스터 발표', '초록 공개',
+    '세미나', '간담회', '출시 예정', '기대감', 'MOU', '양해각서', 'LOI', '투자의향서',
+    '추진', '검토', '타진', '인수설', '합병 추진', '우회상장',
+    '임상 1상', '임상 2상', '임상 2a상', '임상 2b상', '임상 3상', '임상 진척', '전임상', '동물실험', '세포실험',
+)
+
+
+def classify_catalyst_impact(title: str, body: str = "", name: str = "", sector: str = "", code: str = "", is_disclosure: bool = False) -> dict:
     """
-    종목별 실제 핵심 상승 재료(호재 뉴스 및 DART 공시) 정밀 추출 엔진.
-    1) 단순 시황/지수 마감 기사('외국인 매도 폭탄 코스피...', '장중 급락' 등) 철저 필터링
-    2) 해당 종목명(또는 약칭)이 직접 명시된 전용 뉴스 우선 선별
-    3) 수주, 공급계약, 호실적, 신기술, 승인, 흑자전환, FDA 등 고영향 호재 키워드 가중치 부여
-    4) DART 주요 경영 공시(단일판매공급계약, 실적전망 등) 교차 검증 연동
-    5) 잘림 현상([종...) 방지 및 원문 기사 직접 링크(URL) 및 언론사, 본문 요약 제공
+    뉴스·공시 텍스트를 5단계(S+ / S / A / B / C / F)로 정밀 판정하고 AI 점수 가감치(score_delta)를 반환합니다.
+    - 악재 우선 판정(Negative-First Override): 해지/감소/우려/희석 키워드가 포함되면 호재 단어가 있어도 즉시 F급(-20점) 처리
     """
+    text = f"{title or ''} {body or ''}".strip()
+    title_str = str(title or '').strip()
+    is_bio_or_holding = (
+        code != '053800'
+        and sector not in ('IT/SW', '반도체', '기계/장비', '전력/원전', '방산/우주', '조선/해운')
+        and (
+            '바이오' in sector or '제약' in sector
+            or any(k in name for k in ('바이오', '제약', '파마', '테라퓨틱스', '생명', '홀딩스', '지주', '사이언스', '랩'))
+        )
+    )
+
+    # 1순위: 🔴 F급 (악재·실적감소·계약해지·갈등·희석 — 최우선 차단)
+    if any(fk in title_str for fk in _F_TIER_NEGATIVE_KEYWORDS) or _F_TIER_NEG_REGEX.search(title_str):
+        return {
+            'tier': 'F',
+            'score_delta': -20.0,
+            'tier_label': '🔴F급 악재·리스크 감지(-20점)',
+            'has_hard_catalyst': False,
+        }
+
+    # 2순위: 🟢 S+급 (+15점 — 확정 수주공시·소각·어닝서프라이즈·FDA승인)
+    has_s_plus = any(sk in title_str for sk in _S_PLUS_KEYWORDS) or bool(_S_PLUS_SURGE_REGEX.search(title_str))
+    if is_disclosure and any(dk in title_str for dk in ('단일판매', '공급계약', '공사수주', '소각결정', '주식소각', '무상증자', '공개매수')):
+        has_s_plus = True
+    if has_s_plus:
+        return {
+            'tier': 'S+',
+            'score_delta': 15.0,
+            'tier_label': '🟢S+급 초특급 확정호재(+15점)',
+            'has_hard_catalyst': True,
+        }
+
+    # 3순위: 🟢 S급 (+12점 — 수주·양산·턴어라운드·자사주취득·밸류업·마일스톤)
+    has_s = any(sk in title_str for sk in _S_TIER_KEYWORDS) or bool(_S_TIER_EARNINGS_REGEX.search(title_str))
+    if is_disclosure and any(dk in title_str for dk in ('자기주식취득', '신규시설투자', '기업가치제고', '잠정실적', '영업실적')):
+        has_s = True
+    if has_s:
+        return {
+            'tier': 'S',
+            'score_delta': 12.0,
+            'tier_label': '🟢S급 확정호재(+12점)',
+            'has_hard_catalyst': True,
+        }
+
+    # 4순위: 🟡 C급 (-6점 / 바이오·홀딩스 -10점 — 확정 계약 없는 단순 행사·기대감·초기임상 재료소멸)
+    if any(ck in title_str for ck in _C_TIER_SOFT_HYPE_KEYWORDS):
+        penalty = -10.0 if is_bio_or_holding else -6.0
+        return {
+            'tier': 'C',
+            'score_delta': penalty,
+            'tier_label': f"🟡C급 단발·재료소멸 주의({int(penalty)}점)",
+            'has_hard_catalyst': False,
+        }
+
+    # 5순위: 🔵 A급 (+6점 — 목표가 상향·증설·점유율 확대·수출 호조)
+    if any(ak in title_str for ak in _A_TIER_KEYWORDS):
+        return {
+            'tier': 'A',
+            'score_delta': 6.0,
+            'tier_label': '🔵A급 성장·리포트 모멘텀(+6점)',
+            'has_hard_catalyst': False,
+        }
+
+    # 6순위: ⚪ B급 (0점 ~ +2점 — 본업 직결 특징주 및 일반 수급 모멘텀)
+    if '[특징주]' in title_str or any(bk in text for bk in ('수혜', '강세', '돌파', '신고가')):
+        return {
+            'tier': 'B',
+            'score_delta': 2.0,
+            'tier_label': '⚪B급 업종·수혜 모멘텀(+2점)',
+            'has_hard_catalyst': False,
+        }
+    return {
+        'tier': 'B',
+        'score_delta': 0.0,
+        'tier_label': '⚪B급 수급 모멘텀(0점)',
+        'has_hard_catalyst': False,
+    }
+
+
+def fetch_stock_catalyst(code, name="", sector=""):
+    """
+    종목별 실제 핵심 상승 재료(호재 뉴스 및 DART 공시) 정밀 추출 및 5단계(S+/S/A/B/C/F) 스코어링 엔진.
+    1) 단순 시황/지수 마감 기사 및 타 종목 기사 원천 배제 (제목에 해당 종목명/약칭 필수)
+    2) DART 주요 경영 공시(단일판매공급계약, 주식소각, 신규시설투자 등) 교차 검증 및 해지/정정 역방향 필터링
+    3) S+급(+15점) / S급(+12점) / A급(+6점) / B급(0~+2점) / C급(-6~-10점) / F급(-20점) 정량 판정 반환
+    """
+    cache_key = f"{code}:{name}:{sector}"
+    if cache_key in _CATALYST_CACHE:
+        return _CATALYST_CACHE[cache_key]
+
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
     # 종목 약칭/별칭 세트
@@ -65,33 +210,48 @@ def fetch_stock_catalyst(code, name=""):
         aliases.extend(['SK하닉', '하닉'])
     elif '이앤에이' in short_name or 'E&A' in short_name:
         aliases.extend(['삼성E&A', '삼성이앤에이'])
+    elif '에스디에스' in short_name or 'SDS' in short_name:
+        aliases.extend(['삼성SDS', '삼성에스디에스'])
+    elif '씨엔에스' in short_name or 'CNS' in short_name:
+        aliases.extend(['LG CNS', 'LG씨엔에스', '엘지씨엔에스'])
 
-    # 1. DART 공시 우선 확인 (공식 확정 경영 호재)
+    # 1. DART 공시 우선 확인 (공식 확정 경영 호재 vs 해지/처분 악재 구분)
     disc_info = None
     try:
-        url_disc = f'https://m.stock.naver.com/api/stock/{code}/disclosure?pageSize=6&page=1'
+        url_disc = f'https://m.stock.naver.com/api/stock/{code}/disclosure?pageSize=8&page=1'
         req_disc = urllib.request.Request(url_disc, headers=headers)
         with urllib.request.urlopen(req_disc, timeout=3) as resp:
             discs = json.loads(resp.read().decode('utf-8'))
-            impact_keywords = ['단일판매', '공급계약', '영업실적', '타법인', '특허', '합병', '인수', '무상증자', '자사주']
+            impact_keywords = [
+                '단일판매', '공급계약', '공사수주', '주식소각', '소각결정', '자기주식취득',
+                '신규시설투자', '기업가치제고', '무상증자', '공개매수', '잠정실적', '영업실적',
+            ]
+            bad_disc_words = ('해지', '취소', '철회', '기재정정', '자기주식처분', '유상증자', '전환사채', '전환청구권')
             for d in discs:
                 title = d.get('title', '')
+                if any(bw in title for bw in bad_disc_words):
+                    continue
                 if any(k in title for k in impact_keywords):
                     clean_d = re.sub(r'^\([^\)]+\)\s*', '', title)
                     clean_d = re.sub(r'^(주|\(주\)|주식회사|비나텍주식회사|삼성바이오로직스\(주\)|삼성이앤에이\(주\))\s*', '', clean_d)
+                    full_disc_title = f"[공시] {clean_d}"
+                    imp = classify_catalyst_impact(full_disc_title, name=short_name, sector=sector, code=code, is_disclosure=True)
                     disc_info = {
-                        'title': f"[공시] {clean_d}",
+                        'title': full_disc_title,
                         'url': f"https://m.stock.naver.com/domestic/stock/{code}/disclosure",
                         'source': 'DART 전자공시',
-                        'body': f"{name} 금융감독원 전자공시시스템(DART) 주요 경영사항 공시"
+                        'body': f"{name} 금융감독원 전자공시시스템(DART) 주요 경영사항 공시",
+                        **imp,
                     }
                     break
     except Exception:
         pass
 
-    # 2. 실시간 종목 뉴스 클러스터 전수 분석 (최대 30개)
-    market_noise = ['코스피', '코스닥', '지수', '마감시황', '시황종합', '환율', '외인', '외국인 반도체', '투자30', '마켓뷰', '오후시황', '장중 4%', '5500선', '5400선', 'IPO 철회', '코스피5550']
-    catalyst_keywords = ['수주', '계약', '잭팟', '대박', '실적', '영업익', '흑자', '최대', '신작', '승인', 'FDA', '개발', '임상', '특허', '폭등', '급등', '독점', '출격', '러브콜', '특징주', '부각', '목표가']
+    # 2. 실시간 종목 뉴스 클러스터 전수 분석 (최대 30개 — 제목에 종목명/약칭이 포함된 전용 기사만 엄선)
+    market_noise = [
+        '코스피', '코스닥', '지수', '마감시황', '시황종합', '환율', '외인', '외국인 반도체',
+        '투자30', '마켓뷰', '오후시황', '장중 4%', '5500선', '5400선', 'IPO 철회', '코스피5550', '프리마켓서',
+    ]
 
     news_candidates = []
     try:
@@ -103,62 +263,66 @@ def fetch_stock_catalyst(code, name=""):
                 for it in cl.get('items', []):
                     raw_title = it.get('titleFull') or it.get('title', '')
                     title = html.unescape(raw_title).replace('<b>', '').replace('</b>', '').strip()
-                    # 잘림 현상 방지: [종..., [종합], 말미 ... 제거
                     title = re.sub(r'\[종\.\.\.?\]?', '', title).strip()
                     title = re.sub(r'\.\.\.$', '', title).strip()
-                    
+
                     is_about_stock = any(alias in title for alias in aliases) if aliases else True
-                    is_noise = any(n in title for n in market_noise) and not ('[특징주]' in title and any(a in title for a in aliases))
-                    cat_match_count = sum(1 for k in catalyst_keywords if k in title)
+                    if not is_about_stock:
+                        continue  # 타 종목 시황 노이즈(예: 삼전닉스 기사) 원천 배제
+                    is_noise = any(n in title for n in market_noise) and not ('[특징주]' in title and is_about_stock)
+                    if is_noise:
+                        continue
 
-                    score = 0
-                    if is_about_stock:
-                        score += 50
-                    if not is_noise:
-                        score += 30
-                    score += cat_match_count * 15
-                    if '[특징주]' in title:
-                        score += 25
+                    body_txt = html.unescape(it.get('body', '')).replace('<b>', '').replace('</b>', '').strip()
+                    body_clean = re.sub(r'\s+', ' ', body_txt)[:110]
+                    imp = classify_catalyst_impact(title, body=body_clean, name=short_name, sector=sector, code=code, is_disclosure=False)
 
-                    if is_about_stock or (not is_noise and cat_match_count > 0):
-                        url = it.get('mobileNewsUrl')
-                        if not url and it.get('officeId') and it.get('articleId'):
-                            url = f"https://n.news.naver.com/mnews/article/{it['officeId']}/{it['articleId']}"
-                        if not url:
-                            url = f"https://m.stock.naver.com/domestic/stock/{code}/news"
+                    # 후보 정렬 점수: 해당 종목 전용 기사(50) + 등급별 우선순위(S+/S/A 또는 중요 F/C 신호 포착)
+                    rank_score = 50 + int(abs(imp['score_delta']) * 2) + (15 if '[특징주]' in title else 0)
+                    url = it.get('mobileNewsUrl')
+                    if not url and it.get('officeId') and it.get('articleId'):
+                        url = f"https://n.news.naver.com/mnews/article/{it['officeId']}/{it['articleId']}"
+                    if not url:
+                        url = f"https://m.stock.naver.com/domestic/stock/{code}/news"
 
-                        body_txt = html.unescape(it.get('body', '')).replace('<b>', '').replace('</b>', '').strip()
-                        body_clean = re.sub(r'\s+', ' ', body_txt)[:110]
-
-                        news_candidates.append({
-                            'title': title,
-                            'url': url,
-                            'source': it.get('officeName', '증권뉴스'),
-                            'body': body_clean,
-                            'score': score
-                        })
+                    news_candidates.append({
+                        'title': title,
+                        'url': url,
+                        'source': it.get('officeName', '증권뉴스'),
+                        'body': body_clean,
+                        'score': rank_score,
+                        **imp,
+                    })
     except Exception as e:
         logger.warning(f"뉴스 수집 예외 ({code}): {e}")
 
     news_candidates.sort(key=lambda x: x['score'], reverse=True)
 
-    if news_candidates and news_candidates[0]['score'] >= 50:
+    # DART S+/S급 확정 공시가 있고 뉴스에 F급 악재가 없다면 DART 확정 공시 우선 채택
+    has_f_news = next((c for c in news_candidates if c.get('tier') == 'F'), None)
+    if has_f_news:
+        res = {k: v for k, v in has_f_news.items() if k != 'score'}
+    elif disc_info and disc_info.get('tier') in ('S+', 'S'):
+        res = disc_info
+    elif news_candidates:
         best = news_candidates[0]
-        return {
-            'title': best['title'],
-            'url': best['url'],
-            'source': best['source'],
-            'body': best['body']
-        }
+        res = {k: v for k, v in best.items() if k != 'score'}
     elif disc_info:
-        return disc_info
+        res = disc_info
     else:
-        return {
+        res = {
             'title': f"{short_name} 기관·외인 대량 수급 유입 및 업종 주도 모멘텀",
             'url': f"https://m.stock.naver.com/domestic/stock/{code}/news",
             'source': '실시간 수급',
-            'body': '당일 거래대금 폭발 및 지지저항 돌파 주도주'
+            'body': '당일 거래대금 폭발 및 지지저항 돌파 주도주',
+            'tier': 'B',
+            'score_delta': 0.0,
+            'tier_label': '⚪B급 수급 모멘텀(0점)',
+            'has_hard_catalyst': False,
         }
+
+    _CATALYST_CACHE[cache_key] = res
+    return res
 
 
 def get_stock_sector(code, default="주도주"):
@@ -705,17 +869,25 @@ def fetch_stock_major_flow(code: str) -> dict:
         logger.debug(f"{code} 외인/기관 수급 조회 예외: {e}")
 
     try:
-        r_disc = requests.get(f'https://m.stock.naver.com/api/stock/{code}/disclosure?pageSize=5&page=1', headers=headers, timeout=2.0)
+        r_disc = requests.get(f'https://m.stock.naver.com/api/stock/{code}/disclosure?pageSize=8&page=1', headers=headers, timeout=2.0)
         if r_disc.status_code == 200:
             discs = r_disc.json() or []
-            toxic_keywords = ['유상증자', '전환사채', '신주인수권부사채', '감자결정', '불성실공시', '거래정지', '횡령', '배임']
-            today_compact = datetime.now(KST).strftime('%Y%m%d')
-            yesterday_compact = (datetime.now(KST) - timedelta(days=1)).strftime('%Y%m%d')
+            toxic_keywords = [
+                '유상증자', '전환사채', '신주인수권부사채', '교환사채', '전환청구권', '신주인수권행사',
+                '추가상장', '감자결정', '무상감자', '자기주식처분', '시간외대량매매', '블록딜',
+                '불성실공시', '거래정지', '관리종목', '투자경고', '투자위험', '단기과열',
+                '공매도 과열', '감사의견', '횡령', '배임', '부도', '회생', '계약해지', '공급계약해지',
+            ]
+            recent_14d_dates = {
+                (datetime.now(KST) - timedelta(days=offset)).strftime('%Y%m%d')
+                for offset in range(15)
+            }
             for d in discs:
                 title = str(d.get('title', ''))
                 dt_str = re.sub(r'[^0-9]', '', str(d.get('date', '') or d.get('regDt', '')))[:8]
-                is_recent = (not dt_str) or (dt_str in (today_compact, yesterday_compact))
-                if is_recent and any(tk in title for tk in toxic_keywords):
+                is_recent = (not dt_str) or (dt_str in recent_14d_dates)
+                is_bad_amend = ('기재정정' in title and any(ak in title for ak in ('합병', '유상증자', '전환사채', '단일판매', '공급계약', '타법인')))
+                if is_recent and (any(tk in title for tk in toxic_keywords) or is_bad_amend):
                     out['toxic_disclosure'] = title[:60]
                     break
     except Exception as e:
@@ -1038,10 +1210,26 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 score -= 5.0
                 reasons.append("⚠️최근 3일 외인·기관 동시 순매도(-5점)")
 
-            if code in catalyst_codes:
-                score += 10.0
-                reasons.append("DART 공시 호재 포착")
-                tags.append("실적/공시호재")
+            # [5단계 뉴스·공시 정밀 등급(S+ / S / A / B / C / F) 스코어링 통합]
+            cat_info = fetch_stock_catalyst(code, name, stock_sec)
+            cat_tier = cat_info.get('tier', 'B')
+            cat_delta = float(cat_info.get('score_delta', 0.0))
+            if code in catalyst_codes and cat_tier not in ('C', 'F') and cat_delta < 10.0:
+                cat_delta = 12.0
+                cat_tier = 'S'
+                cat_info['tier_label'] = '🟢S급 DART 호재 공시(+12점)'
+            if cat_delta != 0.0:
+                score += cat_delta
+                reasons.append(cat_info.get('tier_label', f"뉴스·공시({cat_delta:+.0f}점)"))
+                if cat_delta >= 10.0:
+                    tags.append("실적/공시호재")
+                elif cat_delta < 0:
+                    tags.append("⚠️재료소멸주의")
+
+            # 제약/바이오 윗꼬리 과다(25% 초과) + 수급 부재 시 재료소멸 추가 방어
+            if stock_sec == '제약/바이오' and head_ratio > 0.25 and not major_flow.get('is_dual_buy'):
+                score -= 6.0
+                reasons.append(f"⚠️바이오 윗꼬리({int(head_ratio*100)}%) 재료소멸 주의(-6점)")
 
             ev_info = event_boost_map.get(name) or event_boost_map.get(code)
             if ev_info:
@@ -1051,10 +1239,12 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     reasons.append(f"🎯{ev_info.get('tag')} (+{b_score}점)")
                     tags.append("D-Day호재모멘텀")
 
+            if cat_tier == 'F':
+                score = min(score, 74.0)
             score = max(0.0, score)
             # AI 종합 점수 90점 미만인 어중간한 종목은 원천 배제 (조건 미달 시 무포지션 100% 현금 보존)
             if score < 90.0:
-                logger.info(f"[종가베팅 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점")
+                logger.info(f"[종가베팅 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점 (재료등급: {cat_tier})")
                 continue
 
             closing_picks.append({
@@ -1244,10 +1434,19 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 score -= 5.0
                 reasons.append("⚠️외인·기관 동시 순매도(-5점)")
 
-            if code in catalyst_codes:
-                score += 12.0
-                reasons.append("실적/호재 공시 연계")
-                tags.append("실적모멘텀")
+            stock_sec_sw = get_stock_sector(code)
+            cat_info_sw = fetch_stock_catalyst(code, name, stock_sec_sw)
+            cat_tier_sw = cat_info_sw.get('tier', 'B')
+            cat_delta_sw = float(cat_info_sw.get('score_delta', 0.0))
+            if code in catalyst_codes and cat_tier_sw not in ('C', 'F') and cat_delta_sw < 12.0:
+                cat_delta_sw = 12.0
+                cat_tier_sw = 'S'
+                cat_info_sw['tier_label'] = '🟢S급 실적/호재 공시(+12점)'
+            if cat_delta_sw != 0.0:
+                score += cat_delta_sw
+                reasons.append(cat_info_sw.get('tier_label', f"뉴스·공시({cat_delta_sw:+.0f}점)"))
+                if cat_delta_sw >= 10.0:
+                    tags.append("실적모멘텀")
 
             ev_info = event_boost_map.get(name) or event_boost_map.get(code)
             if ev_info:
@@ -1257,10 +1456,12 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     reasons.append(f"🎯{ev_info.get('tag')} (+{b_score}점)")
                     tags.append("D-Day호재모멘텀")
 
+            if cat_tier_sw == 'F':
+                score = min(score, 74.0)
             score = min(99.0, max(0.0, score))
             # AI 점수 90점 이상인 진짜 우량 주도주만 최종 진입 허용 (미달 시 추천 안 함)
             if score < 90.0:
-                logger.info(f"[스윙 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점")
+                logger.info(f"[스윙 점수 미달 탈락] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점 (재료등급: {cat_tier_sw})")
                 return None
 
             stg = resolve_swing_targets(close_p, regime=regime, market_context=market_context)
@@ -1746,10 +1947,20 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 _score -= 5.0
                 _reasons.append("⚠️최근 3일 외인·기관 순매도(-5점)")
 
-            if _code in catalyst_codes:
-                _score += 10.0
-                _reasons.append("DART 공시 호재(+10점)")
-                _tags.append("실적/공시호재")
+            _cat_info = fetch_stock_catalyst(_code, _name, _stock_sec)
+            _cat_tier = _cat_info.get('tier', 'B')
+            _cat_delta = float(_cat_info.get('score_delta', 0.0))
+            if _code in catalyst_codes and _cat_tier not in ('C', 'F') and _cat_delta < 10.0:
+                _cat_delta = 12.0
+                _cat_tier = 'S'
+                _cat_info['tier_label'] = '🟢S급 DART 공시 호재(+12점)'
+            if _cat_delta != 0.0:
+                _score += _cat_delta
+                _reasons.append(_cat_info.get('tier_label', f"뉴스·공시({_cat_delta:+.0f}점)"))
+                if _cat_delta >= 10.0:
+                    _tags.append("실적/공시호재")
+                elif _cat_delta < 0:
+                    _tags.append("⚠️재료소멸주의")
 
             _ev_info = event_boost_map.get(_name) or event_boost_map.get(_code)
             if _ev_info:
@@ -1759,7 +1970,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     _reasons.append(f"🎯{_ev_info.get('tag')} (+{_b_score}점)")
                     _tags.append("D-Day호재모멘텀")
 
-            if _major_flow.get('toxic_disclosure'):
+            if _major_flow.get('toxic_disclosure') or _cat_tier == 'F':
                 _score = min(_score, 74.0)
             elif _head_ratio > 0.38:
                 _score = min(_score, 79.0)
@@ -1810,7 +2021,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             p['turnover_pct'] = round((p.get('amount_eok', 0) / (mc / 1e8)) * 100, 2) if mc > 0 else 0.0
         p['nxt_info'] = fetch_nxt_over_market_info(p['code'])
         p['sector'] = get_stock_sector(p['code'])
-        cat_info = fetch_stock_catalyst(p['code'], p.get('name', ''))
+        cat_info = fetch_stock_catalyst(p['code'], p.get('name', ''), p['sector'])
         if isinstance(cat_info, dict):
             p['catalyst'] = cat_info.get('title')
             p['catalyst_url'] = cat_info.get('url', f"https://m.stock.naver.com/domestic/stock/{p['code']}/news")

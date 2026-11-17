@@ -3,7 +3,6 @@ Windows 작업 스케줄러 등록 스크립트
 깃허브 액션의 무료 서버 대기열 지연(1~2시간)을 완전히 해결하여
 내 컴퓨터에서 정확한 시각에 1초의 오차도 없이 텔레그램을 발송합니다.
 """
-import os
 import sys
 import subprocess
 from pathlib import Path

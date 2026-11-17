@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.config import Config
 from src.digest import build_daily_digest
 from src.telegram_sender import send_economic_calendar_to_telegram_sync
-from datetime import datetime, timezone, timedelta
 
 
 def main():

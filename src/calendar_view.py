@@ -7,7 +7,6 @@ BiniStock 📅 주요일정 & 모멘텀 레이더 전용 HTML 뷰어 (src/calend
 - 이번 주 글로벌 경제지표 (ForexFactory + 네이버 연동)
 """
 import logging
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 

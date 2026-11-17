@@ -3,7 +3,6 @@ BiniStock 초고속 실시간 시장 리스크 & 15:10 종가베팅 즉시 진�
 PC에서 실행 시 약 2~3초 만에 나스닥 선물, 반도체 지수, 환율, 수급, AI 리스크 스코어를 실시간 조회합니다.
 """
 import json
-import os
 import sys
 import webbrowser
 from datetime import datetime, timezone, timedelta
@@ -112,7 +111,7 @@ def run_check():
                     print(f"    [{idx}] {name} ({code}) : 기준가 {close_p:,}원 | {reason}")
                 print("─" * 66)
         except Exception as e:
-            pass
+            print(f"  ⚠️ 최신 종가베팅 주도주 조회 실패: {e}")
 
     print("  [조회 옵션 안내]")
     print("  * 온라인 실시간 웹 대시보드 : https://parkseungbin1.github.io/binistock/")
