@@ -493,7 +493,8 @@
           "rule_v": 2,
           "final_return_pct": -3.0,
           "is_success": false,
-          "risk_score": 65
+          "risk_score": 65,
+          "is_blocked_sim": true
         },
         {
           "code": "064400",
@@ -533,7 +534,8 @@
           "rule_v": 2,
           "final_return_pct": 10.44,
           "is_success": true,
-          "risk_score": 65
+          "risk_score": 65,
+          "is_blocked_sim": true
         },
         {
           "code": "090430",
@@ -573,7 +575,8 @@
           "rule_v": 2,
           "final_return_pct": -3.0,
           "is_success": false,
-          "risk_score": 65
+          "risk_score": 65,
+          "is_blocked_sim": true
         }
       ],
       "evaluated": true,
@@ -622,7 +625,8 @@
           "holding_days": 1,
           "is_success": true,
           "risk_score": 56,
-          "final_return_pct": 9.09
+          "final_return_pct": 9.09,
+          "is_blocked_sim": true
         }
       ],
       "evaluated": true,
