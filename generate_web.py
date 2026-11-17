@@ -121,7 +121,7 @@ def generate_html():
         hot_sectors = fallback.get('hot_sectors', [])
 
     hm_kst = now_kst.hour * 100 + now_kst.minute
-    is_closing_window = (now_kst.weekday() < 5) and (1500 <= hm_kst <= 1545)
+    is_closing_window = (now_kst.weekday() < 5) and (1500 <= hm_kst <= 2359)
 
         # 2-X. 오늘의 시장 흐름 (머니플로우) 데이터 로드 & HTML 렌더링
     try:

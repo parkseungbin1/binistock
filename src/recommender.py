@@ -1102,58 +1102,56 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 )
                 continue
 
-        # 윗꼬리 38% 이하 & 양봉 몸통 35% 이상 엄격 필터링
-        if head_ratio <= 0.38 and body_ratio >= 0.35:
-            # [지지·저항 돌파 & 머리 위 저항 충돌 필터]
-            sr = analyze_support_resistance(code, name)
-            if sr and not sr.get('is_valid', True):
-                logger.info(f"[종가베팅 필터 탈락] {name}({code}): {sr.get('reject_reason')}")
-                continue
+        # 윗꼬리 38% 이하 & 양봉 몸통 35% 이상 엄격 필터링 (미달 시에도 화면 점수 공개용 후보 풀에는 감점 후 보존)
+        filter_fail_reasons = []
+        if head_ratio > 0.38 or body_ratio < 0.35:
+            filter_fail_reasons.append(f"⚠️캔들기준미달(윗꼬리 {int(head_ratio*100)}%/몸통 {int(body_ratio*100)}%)")
 
-            sr_score = sr.get('sr_score', 0.0) if sr else 0.0
-            sr_status = sr.get('status', '거래대금 수급 우수') if sr else '거래대금 수급 우수'
-            support_price = sr.get('support_price', int(close_p * 0.98)) if sr else int(close_p * 0.98)
-            next_res = sr.get('next_res', f"{int(close_p * 1.05):,}원") if sr else f"{int(close_p * 1.05):,}원"
-            room_pct = sr.get('room_pct', 5.0) if sr else 5.0
-            sr_tags = sr.get('tags', []) if sr else []
-            rvol = sr.get('rvol', 1.5) if sr else 1.5
-            disp5_pct = sr.get('disp5_pct', 0.0) if sr else 99.0
-            turnover_pct = round((amount_eok / (marcap / 1e8)) * 100, 2) if marcap > 0 else 0.0
-            stock_sec = get_stock_sector(code)
+        sr = analyze_support_resistance(code, name)
+        if sr and not sr.get('is_valid', True):
+            logger.info(f"[종가베팅 필터 탈락] {name}({code}): {sr.get('reject_reason')}")
+            filter_fail_reasons.append(f"⚠️{sr.get('reject_reason')}")
 
-            # +10% ~ +15% 구간은 5일선 이격도 +10.0% 이하 첫 출발 기준봉만 허용 (연속 급등 상투 차단)
-            if change_pct > 10.0 and disp5_pct > 10.0:
-                logger.info(f"[종가베팅 연속급등 상투 차단] {name}({code}): +{change_pct:.1f}% 5일선 이격 +{disp5_pct:.1f}% > +10.0% 초과")
-                continue
+        sr_score = sr.get('sr_score', 0.0) if sr else 0.0
+        sr_status = sr.get('status', '거래대금 수급 우수') if sr else '거래대금 수급 우수'
+        support_price = sr.get('support_price', int(close_p * 0.98)) if sr else int(close_p * 0.98)
+        next_res = sr.get('next_res', f"{int(close_p * 1.05):,}원") if sr else f"{int(close_p * 1.05):,}원"
+        room_pct = sr.get('room_pct', 5.0) if sr else 5.0
+        sr_tags = sr.get('tags', []) if sr else []
+        rvol = sr.get('rvol', 1.5) if sr else 1.5
+        disp5_pct = sr.get('disp5_pct', 0.0) if sr else 99.0
+        turnover_pct = round((amount_eok / (marcap / 1e8)) * 100, 2) if marcap > 0 else 0.0
+        stock_sec = get_stock_sector(code)
 
-            # [시총 규모별 최소 회전율(Turnover %) & RVOL 복합 필터]
-            # • 대주주/연기금 지분이 60~70% 잠긴 10~20조 대형주(삼성SDS 0.46%, 삼성E&A 0.92% 등)는
-            #   시총 회전율이 0.4% 이상이거나 평소 거래량 대비 RVOL 1.5배 이상(거래대금 500억+)이면 진짜 주도 수급으로 인정!
-            # • 5조 미만 중형주는 최소 회전율 1.0% 이상 필수
-            min_req_turnover = 0.4 if marcap >= 50000 * 1e8 else 1.0
-            if turnover_pct < min_req_turnover and amount_eok < 700:
-                logger.info(
-                    f"[종가베팅 필터 탈락] {name}({code}): 시총({marcap_str}) 대비 거래대금({int(amount_eok):,}억) "
-                    f"회전율 부족 ({turnover_pct:.2f}% < 기준 {min_req_turnover:.1f}%)"
-                )
-                continue
+        # +10% ~ +15% 구간은 5일선 이격도 +10.0% 이하 첫 출발 기준봉만 허용 (연속 급등 상투 차단)
+        if change_pct > 10.0 and disp5_pct > 10.0:
+            logger.info(f"[종가베팅 연속급등 상투 차단] {name}({code}): +{change_pct:.1f}% 5일선 이격 +{disp5_pct:.1f}% > +10.0% 초과")
+            filter_fail_reasons.append(f"⚠️5일선이격과열(+{disp5_pct:.1f}%)")
 
-            # [아이디어 2 & 6] 분봉 미시구조(VWAP & 오전 설거지 패턴 & 막판 동시호가 수급) 분석
-            micro = analyze_intraday_microstructure(code, close_p)
-            if micro and micro.get('is_morning_dump'):
-                logger.info(f"[종가베팅 필터 탈락] {name}({code}): 오전 고점({micro.get('peak_time')}) 후 오후 VWAP 하회 설거지 패턴")
-                continue
-            if change_pct > 10.0:
-                vwap_diff_now = micro.get('vwap_diff_pct', -1.0) if micro else -1.0
-                if vwap_diff_now <= 0.0:
-                    logger.info(f"[종가베팅 VWAP 미달 차단] {name}({code}): +{change_pct:.1f}% 당일 VWAP 하회({vwap_diff_now:+.2f}%)")
-                    continue
+        min_req_turnover = 0.4 if marcap >= 50000 * 1e8 else 1.0
+        if turnover_pct < min_req_turnover and amount_eok < 700:
+            logger.info(
+                f"[종가베팅 필터 탈락] {name}({code}): 시총({marcap_str}) 대비 거래대금({int(amount_eok):,}억) "
+                f"회전율 부족 ({turnover_pct:.2f}% < 기준 {min_req_turnover:.1f}%)"
+            )
+            filter_fail_reasons.append(f"⚠️회전율부족({turnover_pct:.2f}%)")
 
-            # [S급 수급·악재공시 검증] 외인/기관 3일 누적 수급 및 희석 공시 필터
-            major_flow = fetch_stock_major_flow(code)
-            if major_flow.get('toxic_disclosure'):
-                logger.warning(f"[종가베팅 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
-                continue
+        micro = analyze_intraday_microstructure(code, close_p)
+        if micro and micro.get('is_morning_dump'):
+            logger.info(f"[종가베팅 필터 탈락] {name}({code}): 오전 고점({micro.get('peak_time')}) 후 오후 VWAP 하회 설거지 패턴")
+            filter_fail_reasons.append(f"⚠️오후VWAP하회(고점 {micro.get('peak_time')})")
+        if change_pct > 10.0:
+            vwap_diff_now = micro.get('vwap_diff_pct', -1.0) if micro else -1.0
+            if vwap_diff_now <= 0.0:
+                logger.info(f"[종가베팅 VWAP 미달 차단] {name}({code}): +{change_pct:.1f}% 당일 VWAP 하회({vwap_diff_now:+.2f}%)")
+                filter_fail_reasons.append("⚠️당일VWAP하회")
+
+        major_flow = fetch_stock_major_flow(code)
+        if major_flow.get('toxic_disclosure'):
+            logger.warning(f"[종가베팅 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
+            filter_fail_reasons.append(f"🚨악재공시({major_flow['toxic_disclosure'][:18]})")
+
+        if True:
 
             # 점수 산정: 기본 40 + 수급파괴력(절대거래대금 20점 + 시총회전율 10점 = 최대 30점) + 캔들완성도(최대 15) + 지지저항돌파(최대 30)
             abs_vol_score = min(amount_eok / 40.0, 20.0)        # 거래대금 절대 규모 (800억 이상 시 20점 만점 -> 삼성SDS 827억, 삼성E&A 1172억 모두 만점!)
@@ -1240,13 +1238,18 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     reasons.append(f"🎯{ev_info.get('tag')} (+{b_score}점)")
                     tags.append("D-Day호재모멘텀")
 
-            if cat_tier == 'F':
+            if filter_fail_reasons:
+                score -= 10.0 * len(filter_fail_reasons)
+                reasons.extend(filter_fail_reasons)
+                score = min(score, 82.0)
+            if cat_tier == 'F' or major_flow.get('toxic_disclosure'):
                 score = min(score, 74.0)
             elif cat_tier == 'B' and cat_delta <= 0.0 and not major_flow.get('is_dual_buy') and code not in catalyst_codes:
                 # 확정 재료(S+/S/A/특징주)도 없고 외인·기관 쌍끌이도 없는 일반 기사는 차트만으로 90점을 넘지 못하도록 88점 상한 적용
                 score = min(score, 88.0)
             score = max(0.0, score)
             final_cl_score = int(round(min(score, 99.0)))
+            is_sub_cl = (final_cl_score < 90) or bool(filter_fail_reasons)
             cand_item = {
                 'code': code,
                 'name': name,
@@ -1278,10 +1281,10 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'peak_time': micro.get('peak_time', '15:15') if micro else '15:15',
                 'closing_auction_diff': micro.get('closing_auction_diff', 0.0) if micro else 0.0,
                 'is_breakout': sr.get('is_20_breakout', False) or sr.get('is_60_breakout', False) if sr else False,
-                'is_sub_threshold': final_cl_score < 90,
+                'is_sub_threshold': is_sub_cl,
             }
             all_closing_evaluated.append(cand_item)
-            if final_cl_score < 90:
+            if is_sub_cl:
                 logger.info(f"[종가베팅 90점 미달(관망 후보 보존)] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점 (재료등급: {cat_tier})")
                 continue
 
