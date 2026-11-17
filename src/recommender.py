@@ -231,9 +231,9 @@ def fetch_stock_catalyst(code, name="", sector=""):
         ymd, hm = digits[:8], (digits[8:12] if len(digits) >= 12 else '0900')
         return (ymd == today_ymd) or (ymd == prev_ymd and hm >= '1530')
 
-    recent_5d_dates = {
+    recent_3d_dates = {
         (now_kst - timedelta(days=offset)).strftime('%Y%m%d')
-        for offset in range(6)
+        for offset in range(4)
     }
     disc_info = None
     try:
@@ -245,14 +245,32 @@ def fetch_stock_catalyst(code, name="", sector=""):
                 '단일판매', '공급계약', '공사수주', '주식소각', '소각결정', '자기주식취득',
                 '신규시설투자', '기업가치제고', '무상증자', '공개매수', '잠정실적', '영업실적',
             ]
-            bad_disc_words = ('해지', '취소', '철회', '기재정정', '자기주식처분', '유상증자', '전환사채', '전환청구권', '변경상장')
+            bad_disc_words = ('해지', '취소', '철회', '기재정정', '자기주식처분', '유상증자', '전환사채', '전환청구권')
             for d in discs:
                 title = d.get('title', '')
                 raw_d_dt = d.get('datetime') or d.get('date') or d.get('regDt') or ''
-                if not _is_today_fresh(raw_d_dt):
-                    continue  # 당일(전일 장마감 이후~오늘) 공시가 아니면 호재 점수 미부여
                 if any(bw in title for bw in bad_disc_words):
                     continue
+                if '변경상장' in title:
+                    # 변경상장(주식소각)은 사후 행정 완료 통보이므로 +15점 가산 없이 0점 참고 정보로만 보존 (최근 5일)
+                    d_ymd = re.sub(r'[^0-9]', '', str(raw_d_dt))[:8]
+                    if '주식소각' in title and d_ymd and d_ymd >= (now_kst - timedelta(days=5)).strftime('%Y%m%d'):
+                        clean_d = re.sub(r'^\([^\)]+\)\s*', '', title)
+                        clean_d = re.sub(r'^(주|\(주\)|주식회사)\s*', '', clean_d)
+                        disc_info = {
+                            'title': f"[공시·참고] {clean_d}",
+                            'url': f"https://m.stock.naver.com/domestic/stock/{code}/disclosure",
+                            'source': 'DART 전자공시',
+                            'body': f"{name} 주식소각 변경상장 완료 공시 (사후 참고)",
+                            'tier': 'B',
+                            'score_delta': 0.0,
+                            'tier_label': '⚪B급 소각완료 참고(0점)',
+                            'has_hard_catalyst': False,
+                        }
+                        break
+                    continue
+                if not _is_today_fresh(raw_d_dt):
+                    continue  # 당일(전일 장마감 이후~오늘) 공시가 아니면 호재 점수 미부여
                 if any(k in title for k in impact_keywords):
                     clean_d = re.sub(r'^\([^\)]+\)\s*', '', title)
                     clean_d = re.sub(r'^(주|\(주\)|주식회사|비나텍주식회사|삼성바이오로직스\(주\)|삼성이앤에이\(주\))\s*', '', clean_d)
@@ -269,7 +287,7 @@ def fetch_stock_catalyst(code, name="", sector=""):
     except Exception:
         pass
 
-    # 2. 실시간 종목 뉴스 클러스터 전수 분석 (최대 30개 — 호재 가점은 당일 기준, 악재 감시는 최근 5일 감시)
+    # 2. 실시간 종목 뉴스 클러스터 전수 분석 (최대 30개 — 호재 가점은 당일 기준, 악재 감시는 최근 3일 감시)
     market_noise = [
         '코스피', '코스닥', '지수', '마감시황', '시황종합', '환율', '외인', '외국인 반도체',
         '투자30', '마켓뷰', '오후시황', '장중 4%', '5500선', '5400선', 'IPO 철회', '코스피5550', '프리마켓서',
@@ -285,8 +303,8 @@ def fetch_stock_catalyst(code, name="", sector=""):
                 for it in cl.get('items', []):
                     raw_n_dt = str(it.get('datetime') or '')
                     n_dt = re.sub(r'[^0-9]', '', raw_n_dt)[:8]
-                    if n_dt and n_dt not in recent_5d_dates:
-                        continue  # 5일 지난 오래된 기사 제외
+                    if n_dt and n_dt not in recent_3d_dates:
+                        continue  # 3일 지난 오래된 기사 제외
                     is_fresh_today = _is_today_fresh(raw_n_dt)
                     raw_title = it.get('titleFull') or it.get('title', '')
                     title = html.unescape(raw_title).replace('<b>', '').replace('</b>', '').strip()
@@ -863,7 +881,7 @@ def _parse_signed_int(val) -> int:
         return 0
 
 
-def fetch_stock_major_flow(code: str) -> dict:
+def fetch_stock_major_flow(code: str, toxic_lookback_days: int = 14) -> dict:
     """
     종목별 최근 3영업일 외국인·기관 순매수 수급 및 희석/리스크 악재 공시 여부를 조회합니다.
     GitHub Actions 등 키움 API 키가 없는 환경에서도 동작하도록 네이버 모바일 API를 사용합니다.
@@ -908,14 +926,14 @@ def fetch_stock_major_flow(code: str) -> dict:
                 '불성실공시', '거래정지', '관리종목', '투자경고', '투자위험', '단기과열',
                 '공매도 과열', '감사의견', '횡령', '배임', '부도', '회생', '계약해지', '공급계약해지',
             ]
-            recent_14d_dates = {
+            recent_toxic_dates = {
                 (datetime.now(KST) - timedelta(days=offset)).strftime('%Y%m%d')
-                for offset in range(15)
+                for offset in range(max(1, int(toxic_lookback_days)) + 1)
             }
             for d in discs:
                 title = str(d.get('title', ''))
                 dt_str = re.sub(r'[^0-9]', '', str(d.get('datetime') or d.get('date') or d.get('regDt') or ''))[:8]
-                is_recent = (not dt_str) or (dt_str in recent_14d_dates)
+                is_recent = (not dt_str) or (dt_str in recent_toxic_dates)
                 is_bad_amend = ('기재정정' in title and any(ak in title for ak in ('합병', '유상증자', '전환사채', '단일판매', '공급계약', '타법인')))
                 if is_recent and (any(tk in title for tk in toxic_keywords) or is_bad_amend):
                     out['toxic_disclosure'] = title[:60]
@@ -1175,7 +1193,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.info(f"[종가베팅 VWAP 미달 차단] {name}({code}): +{change_pct:.1f}% 당일 VWAP 하회({vwap_diff_now:+.2f}%)")
                 filter_fail_reasons.append("⚠️당일VWAP하회")
 
-        major_flow = fetch_stock_major_flow(code)
+        major_flow = fetch_stock_major_flow(code, toxic_lookback_days=7)
         if major_flow.get('toxic_disclosure'):
             logger.warning(f"[종가베팅 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
             filter_fail_reasons.append(f"🚨악재공시({major_flow['toxic_disclosure'][:18]})")
@@ -1439,8 +1457,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 logger.info(f"[스윙 필터 탈락] {name}({code}): 오전 고점({micro.get('peak_time')}) 후 VWAP 하회 설거지 패턴")
                 return None
 
-            # 3) 최근 3일 외인·기관 수급 및 희석 악재 공시 차단
-            major_flow = fetch_stock_major_flow(code)
+            # 3) 최근 3일 외인·기관 수급 및 14일 희석 악재 공시 차단
+            major_flow = fetch_stock_major_flow(code, toxic_lookback_days=14)
             if major_flow.get('toxic_disclosure'):
                 logger.warning(f"[스윙 악재 공시 차단] {name}({code}): {major_flow['toxic_disclosure']}")
                 return None
@@ -1914,7 +1932,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             _turnover_pct = round((_amount_eok / (_marcap / 1e8)) * 100, 2) if _marcap > 0 else 0.0
             _stock_sec = get_stock_sector(_code)
             _micro = analyze_intraday_microstructure(_code, _close_p)
-            _major_flow = fetch_stock_major_flow(_code)
+            _major_flow = fetch_stock_major_flow(_code, toxic_lookback_days=7)
 
             # 종가베팅과 100% 동일한 AI 점수 공식 적용
             _abs_vol_score = min(_amount_eok / 40.0, 20.0)
