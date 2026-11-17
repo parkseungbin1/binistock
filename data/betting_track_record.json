@@ -1589,6 +1589,59 @@
       "evaluated": true,
       "success_count": 0,
       "total_count": 1
+    },
+    {
+      "date": "2026-11-16",
+      "picks": [
+        {
+          "code": "263860",
+          "name": "지니언스",
+          "market": "KOSDAQ",
+          "sector": "IT/SW",
+          "catalyst": "[ET특징주] '3분기 영업익 3.5배 ↑' 지니언스, 호실적에 주가 이틀째",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/030/0003485367",
+          "catalyst_source": "전자신문",
+          "catalyst_body": "지니언스가 올해 3분기 호실적을 발표하면서 2거래일 연속 강세를 이어가고 있다. 13일 오전 10시 49분 기준 지니언스(263860) 주가는 전 거래일 대비 12.12% 상승한 3만 5150원에 ",
+          "close_price": 34750,
+          "price": 34750,
+          "change_pct": 7.27,
+          "amount_eok": 872,
+          "marcap": 335037240000,
+          "marcap_str": "3,350억",
+          "target_1": 35792,
+          "target_1_pct": "+2.0%",
+          "target_2": 36488,
+          "target_2_pct": "+5.0%",
+          "stop_loss": 34055,
+          "stop_loss_pct": "-2.0%",
+          "score": 99,
+          "reason": "거래대금 872억 폭발(시총회전율 26.1%) · 고가 마감 양봉(윗꼬리 14%) · 차트: ⚡ 20일선 지지 우상향 파동 · 당일 VWAP 상회(+4.0% · 고점 13:49) · 🔥당일 주도섹터(IT/SW) 동조화 · 👑주도섹터(IT/SW) 1등 대장주 · 🏦기관 연속 순매수 매집(+3점)",
+          "holding_period": "당일 15:10~15:30 매수 → 익일 09:00~09:20 전량 분할 매도",
+          "tags": [
+            "거래대금폭발",
+            "단단한양봉",
+            "익일시초가노림",
+            "20일선지지",
+            "우상향파동",
+            "섹터1등대장",
+            "기관매집"
+          ],
+          "sr_status": "⚡ 20일선 지지 우상향 파동",
+          "support_price": 34055,
+          "next_resistance": "38,250원 (+3.7%)",
+          "chart_url": "https://m.stock.naver.com/domestic/stock/263860/total",
+          "open_price": 34400,
+          "next_high_price": 37700,
+          "gap_pct": -1.01,
+          "high_pct": 8.49,
+          "is_success": true,
+          "plan_return_pct": 3.5
+        }
+      ],
+      "evaluated": true,
+      "risk_score": 60,
+      "success_count": 1,
+      "total_count": 1
     }
   ]
 }
