@@ -216,7 +216,11 @@ def fetch_stock_catalyst(code, name="", sector=""):
     elif '씨엔에스' in short_name or 'CNS' in short_name:
         aliases.extend(['LG CNS', 'LG씨엔에스', '엘지씨엔에스'])
 
-    # 1. DART 공시 우선 확인 (공식 확정 경영 호재 vs 해지/처분 악재 구분)
+    # 1. DART 공시 우선 확인 (최근 5일 이내 공식 확정 경영 호재만 인정 — 한 달 전 구버전 공시 배제)
+    recent_5d_dates = {
+        (datetime.now(KST) - timedelta(days=offset)).strftime('%Y%m%d')
+        for offset in range(6)
+    }
     disc_info = None
     try:
         url_disc = f'https://m.stock.naver.com/api/stock/{code}/disclosure?pageSize=8&page=1'
@@ -230,6 +234,9 @@ def fetch_stock_catalyst(code, name="", sector=""):
             bad_disc_words = ('해지', '취소', '철회', '기재정정', '자기주식처분', '유상증자', '전환사채', '전환청구권')
             for d in discs:
                 title = d.get('title', '')
+                d_dt = re.sub(r'[^0-9]', '', str(d.get('datetime') or d.get('date') or d.get('regDt') or ''))[:8]
+                if d_dt and d_dt not in recent_5d_dates:
+                    continue  # 최근 5일(금주) 공시가 아니면 당일 호재 모멘텀에서 제외
                 if any(bw in title for bw in bad_disc_words):
                     continue
                 if any(k in title for k in impact_keywords):
@@ -248,7 +255,7 @@ def fetch_stock_catalyst(code, name="", sector=""):
     except Exception:
         pass
 
-    # 2. 실시간 종목 뉴스 클러스터 전수 분석 (최대 30개 — 제목에 종목명/약칭이 포함된 전용 기사만 엄선)
+    # 2. 실시간 종목 뉴스 클러스터 전수 분석 (최대 30개 — 최근 5일 이내 & 제목에 종목명/약칭이 포함된 전용 기사만 엄선)
     market_noise = [
         '코스피', '코스닥', '지수', '마감시황', '시황종합', '환율', '외인', '외국인 반도체',
         '투자30', '마켓뷰', '오후시황', '장중 4%', '5500선', '5400선', 'IPO 철회', '코스피5550', '프리마켓서',
@@ -262,6 +269,9 @@ def fetch_stock_catalyst(code, name="", sector=""):
             clusters = json.loads(resp.read().decode('utf-8'))
             for cl in clusters:
                 for it in cl.get('items', []):
+                    n_dt = re.sub(r'[^0-9]', '', str(it.get('datetime') or ''))[:8]
+                    if n_dt and n_dt not in recent_5d_dates:
+                        continue  # 5일 지난 오래된 기사 제외
                     raw_title = it.get('titleFull') or it.get('title', '')
                     title = html.unescape(raw_title).replace('<b>', '').replace('</b>', '').strip()
                     title = re.sub(r'\[종\.\.\.?\]?', '', title).strip()
@@ -885,7 +895,7 @@ def fetch_stock_major_flow(code: str) -> dict:
             }
             for d in discs:
                 title = str(d.get('title', ''))
-                dt_str = re.sub(r'[^0-9]', '', str(d.get('date', '') or d.get('regDt', '')))[:8]
+                dt_str = re.sub(r'[^0-9]', '', str(d.get('datetime') or d.get('date') or d.get('regDt') or ''))[:8]
                 is_recent = (not dt_str) or (dt_str in recent_14d_dates)
                 is_bad_amend = ('기재정정' in title and any(ak in title for ak in ('합병', '유상증자', '전환사채', '단일판매', '공급계약', '타법인')))
                 if is_recent and (any(tk in title for tk in toxic_keywords) or is_bad_amend):
