@@ -493,7 +493,8 @@
           "rule_v": 2,
           "final_return_pct": -3.0,
           "is_success": false,
-          "risk_score": 65
+          "risk_score": 65,
+          "is_blocked_sim": true
         },
         {
           "code": "064400",
@@ -533,7 +534,8 @@
           "rule_v": 2,
           "final_return_pct": 10.44,
           "is_success": true,
-          "risk_score": 65
+          "risk_score": 65,
+          "is_blocked_sim": true
         },
         {
           "code": "090430",
@@ -573,7 +575,8 @@
           "rule_v": 2,
           "final_return_pct": -3.0,
           "is_success": false,
-          "risk_score": 65
+          "risk_score": 65,
+          "is_blocked_sim": true
         }
       ],
       "evaluated": true,
@@ -622,7 +625,8 @@
           "holding_days": 1,
           "is_success": true,
           "risk_score": 56,
-          "final_return_pct": 9.09
+          "final_return_pct": 9.09,
+          "is_blocked_sim": true
         }
       ],
       "evaluated": true,
@@ -836,7 +840,7 @@
           "stop_loss_pct": "-3.0%",
           "rule_v": 2,
           "score": 99,
-          "reason": "20일선(75,630원) 눌림목 지지 · 이격도 1.8% 안정 구간 · 당일 VWAP 상회(+0.1%) · 🏦기관 연속 순매수(+2점) · 🟢S+급 초특급 확정호재(+15점)",
+          "reason": "20일선(75,635원) 눌림목 지지 · 이격도 1.8% 안정 구간 · 당일 VWAP 상회(+0.1%) · 🏦기관 연속 순매수(+2점) · 🟢S+급 초특급 확정호재(+15점)",
           "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
           "tags": [
             "20일선눌림목",
