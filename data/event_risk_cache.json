@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-17 15:57:10",
+  "updated_at": "2026-11-17 16:22:34",
   "overnight_risk": {
     "score": 0,
     "level": "GREEN",
@@ -138,6 +138,14 @@
       "tag": "🔥 시총 7.45% 소각 예정 (D-10)"
     },
     {
+      "corp_name": "인포바인",
+      "ratio_pct": 5.13,
+      "burn_date": "2026-11-30",
+      "d_day": 13,
+      "boost_score": 7,
+      "tag": "🔥 시총 5.13% 소각 예정 (D-13)"
+    },
+    {
       "corp_name": "HDC랩스",
       "ratio_pct": 4.33,
       "burn_date": "2026-11-23",
@@ -264,14 +272,6 @@
       "d_day": 7,
       "boost_score": 0,
       "tag": "🔥 시총 0.01% 소각 예정 (D-7)"
-    },
-    {
-      "corp_name": "한화",
-      "ratio_pct": 0.01,
-      "burn_date": "2026-11-18</div>\n        </div>",
-      "d_day": null,
-      "boost_score": 0,
-      "tag": "🔥 시총 0.01% 소각 예정 (D-?)"
     }
   ],
   "stock_boost_map": {
@@ -294,6 +294,11 @@
       "boost_score": 10,
       "tag": "🔥 시총 7.45% 소각 예정 (D-10)",
       "reason": "자사주 시총 7.45% 영구소각 호재"
+    },
+    "인포바인": {
+      "boost_score": 7,
+      "tag": "🔥 시총 5.13% 소각 예정 (D-13)",
+      "reason": "자사주 시총 5.13% 영구소각 호재"
     },
     "HDC랩스": {
       "boost_score": 4,
@@ -373,11 +378,6 @@
     "씨엔알리서치": {
       "boost_score": 0,
       "tag": "🔥 시총 0.01% 소각 예정 (D-7)",
-      "reason": "자사주 시총 0.01% 영구소각 호재"
-    },
-    "한화": {
-      "boost_score": 0,
-      "tag": "🔥 시총 0.01% 소각 예정 (D-?)",
       "reason": "자사주 시총 0.01% 영구소각 호재"
     }
   }
