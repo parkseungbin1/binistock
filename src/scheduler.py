@@ -64,10 +64,10 @@ class EconomicCalendarScheduler:
     
     def send_economic_calendar(self):
         """
-        날씨 + 경제 캘린더 데이터 수집 및 텔레그램 전송
+        시황 + 경제 캘린더 데이터 수집 및 텔레그램 전송
         """
         try:
-            logger.info(f"[{datetime.now()}] 날씨 + 경제 캘린더 데이터 수집 시작")
+            logger.info(f"[{datetime.now()}] 시황 + 경제 캘린더 데이터 수집 시작")
             
             # 데이터 수집
             digest = build_daily_digest()
@@ -90,12 +90,12 @@ class EconomicCalendarScheduler:
             )
             
             if success_weather and success_economic:
-                logger.info(f"[{datetime.now()}] 날씨 + 경제 캘린더 전송 성공 (이벤트 수: {len(digest['events'])})")
+                logger.info(f"[{datetime.now()}] 시황 + 경제 캘린더 전송 성공 (이벤트 수: {len(digest['events'])})")
             else:
-                logger.error(f"[{datetime.now()}] 날씨 + 경제 캘린더 전송 실패")
+                logger.error(f"[{datetime.now()}] 시황 + 경제 캘린더 전송 실패")
         
         except Exception as e:
-            logger.error(f"[{datetime.now()}] 날씨 + 경제 캘린더 처리 중 오류: {e}", exc_info=True)
+            logger.error(f"[{datetime.now()}] 시황 + 경제 캘린더 처리 중 오류: {e}", exc_info=True)
     
     def get_jobs(self):
         """

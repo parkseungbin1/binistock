@@ -10,7 +10,9 @@ import re
 import json
 import logging
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 
 logger = logging.getLogger("market_flow")
 
@@ -168,7 +170,7 @@ def get_market_flow_data(force_refresh: bool = False):
         
     if sectors:
         cache_data = {
-            "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "updated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S"),
             "sector_count": len(sectors),
             "sectors": sectors
         }
@@ -187,7 +189,7 @@ def get_market_flow_data(force_refresh: bool = False):
             logger.error(f"Failed to read market flow cache: {e}")
             
     return {
-        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S"),
         "sector_count": 0,
         "sectors": []
     }
