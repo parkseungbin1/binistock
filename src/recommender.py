@@ -799,12 +799,16 @@ def analyze_support_resistance(code: str, name: str) -> dict:
         avg_20_vol = sum(r['volume'] for r in past_20) / max(len(past_20), 1)
         rvol = round(today['volume'] / avg_20_vol, 2) if avg_20_vol > 0 else 1.0
 
-        # 5일선·20일선·60일선 이동평균 및 5일선 이격도
+        # 5일선·20일선·60일선 이동평균 및 이격도 · 5일 누적 상승률
         ma5 = sum(r['close'] for r in rows[-5:]) / 5.0
         ma20 = sum(r['close'] for r in rows[-20:]) / 20.0
         ma20_prev = sum(r['close'] for r in rows[-24:-4]) / 20.0 if len(rows) >= 24 else ma20
         ma60 = sum(r['close'] for r in rows[-60:]) / len(rows[-60:]) if len(rows) >= 60 else None
         disp5_pct = round(((today_close - ma5) / ma5) * 100.0, 2) if ma5 > 0 else 0.0
+        disp20_pct = round(((today_close - ma20) / ma20) * 100.0, 2) if ma20 > 0 else 0.0
+        disp60_pct = round(((today_close - ma60) / ma60) * 100.0, 2) if (ma60 and ma60 > 0) else 0.0
+        base_5d_close = rows[-6]['close'] if len(rows) >= 6 else rows[0]['close']
+        chg_5d_pct = round(((today_close - base_5d_close) / base_5d_close) * 100.0, 2) if base_5d_close > 0 else 0.0
 
         # 1. 역배열 하향 추세 (20일선 밑에 주가가 위치) -> 탈락
         if today_close < ma20:
@@ -867,6 +871,9 @@ def analyze_support_resistance(code: str, name: str) -> dict:
             'ma20': ma20,
             'ma20_prev': ma20_prev,
             'disp5_pct': disp5_pct,
+            'disp20_pct': disp20_pct,
+            'disp60_pct': disp60_pct,
+            'chg_5d_pct': chg_5d_pct,
             'tags': tags
         }
     except Exception as e:
@@ -1167,8 +1174,23 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         sr_tags = sr.get('tags', []) if sr else []
         rvol = sr.get('rvol', 1.5) if sr else 1.5
         disp5_pct = sr.get('disp5_pct', 0.0) if sr else 99.0
+        disp20_pct = sr.get('disp20_pct', 0.0) if sr else 0.0
+        disp60_pct = sr.get('disp60_pct', 0.0) if sr else 0.0
+        chg_5d_pct = sr.get('chg_5d_pct', 0.0) if sr else 0.0
         turnover_pct = round((amount_eok / (marcap / 1e8)) * 100, 2) if marcap > 0 else 0.0
         stock_sec = get_stock_sector(code)
+
+        # 20일선(+28%) / 60일선(+50%) / 5거래일 누적(+35%) 초과 과열 상투 구간 방어
+        overheat_msgs = []
+        if disp20_pct > 28.0:
+            overheat_msgs.append(f"20일선+{disp20_pct:.1f}%")
+        if disp60_pct > 50.0:
+            overheat_msgs.append(f"60일선+{disp60_pct:.1f}%")
+        if chg_5d_pct > 35.0:
+            overheat_msgs.append(f"5일누적+{chg_5d_pct:.1f}%")
+        if overheat_msgs:
+            logger.info(f"[종가베팅 이격과열 상투 차단] {name}({code}): {', '.join(overheat_msgs)}")
+            filter_fail_reasons.append(f"⚠️이격과열상투({', '.join(overheat_msgs)})")
 
         # +10% ~ +15% 구간은 5일선 이격도 +10.0% 이하 첫 출발 기준봉만 허용 (연속 급등 상투 차단)
         if change_pct > 10.0 and disp5_pct > 10.0:
@@ -1288,12 +1310,9 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             if filter_fail_reasons:
                 score -= 10.0 * len(filter_fail_reasons)
                 reasons.extend(filter_fail_reasons)
-                score = min(score, 82.0)
+                score = min(score, 84.0)
             if cat_tier == 'F' or major_flow.get('toxic_disclosure'):
                 score = min(score, 74.0)
-            elif cat_tier == 'B' and cat_delta <= 0.0 and not major_flow.get('is_dual_buy') and code not in catalyst_codes:
-                # 확정 재료(S+/S/A/특징주)도 없고 외인·기관 쌍끌이도 없는 일반 기사는 차트만으로 90점을 넘지 못하도록 88점 상한 적용
-                score = min(score, 88.0)
             score = max(0.0, score)
             final_cl_score = int(round(min(score, 99.0)))
             is_sub_cl = (final_cl_score < 90) or bool(filter_fail_reasons)
@@ -1468,8 +1487,11 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             if risk_val > 60 or regime_status == 'panic':
                 logger.info(f"[스윙 시황 주의] {name}({code}): AI 리스크 {risk_val}점 (>60점) ➔ 종목·점수는 표시하되 자동매수는 보류")
 
-            score = 65.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
+            score = 68.0 + min(amount_eok / 70, 15.0) + (5.0 - dist_ma20) * 3.5
             reasons = [f"20일선({int(ma20):,}원) 눌림목 지지", f"이격도 {dist_ma20:.1f}% 안정 구간"]
+            if dist_ma20 <= 2.0:
+                score += 3.0
+                reasons.append("20일선 초밀착 지지(+3점)")
             tags = ['20일선눌림목', '추세우상향', '안정적손익비']
 
             if sr:
@@ -1487,12 +1509,12 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 reasons.append(f"당일 VWAP 상회(+{micro['vwap_diff_pct']:.1f}%)")
 
             if major_flow.get('is_dual_buy'):
-                score += 5.0
-                reasons.append("🏦외인·기관 쌍끌이 매수(+5점)")
+                score += 7.0
+                reasons.append("🏦외인·기관 쌍끌이 매수(+7점)")
                 tags.append("쌍끌이수급")
             elif major_flow.get('is_organ_accum'):
-                score += 2.0
-                reasons.append("🏦기관 연속 순매수(+2점)")
+                score += 4.0
+                reasons.append("🏦기관 연속 순매수(+4점)")
             elif major_flow.get('is_major_dump'):
                 score -= 5.0
                 reasons.append("⚠️외인·기관 동시 순매도(-5점)")
@@ -2026,12 +2048,26 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     _reasons.append(f"🎯{_ev_info.get('tag')} (+{_b_score}점)")
                     _tags.append("D-Day호재모멘텀")
 
+            _disp20_pct = _sr.get('disp20_pct', 0.0) if _sr else 0.0
+            _disp60_pct = _sr.get('disp60_pct', 0.0) if _sr else 0.0
+            _chg_5d_pct = _sr.get('chg_5d_pct', 0.0) if _sr else 0.0
+            _cond_overheat = []
+            if _disp20_pct > 28.0:
+                _cond_overheat.append(f"20일선+{_disp20_pct:.1f}%")
+            if _disp60_pct > 50.0:
+                _cond_overheat.append(f"60일선+{_disp60_pct:.1f}%")
+            if _chg_5d_pct > 35.0:
+                _cond_overheat.append(f"5일누적+{_chg_5d_pct:.1f}%")
+            if _cond_overheat:
+                _score -= 10.0
+                _reasons.append(f"⚠️이격과열상투({', '.join(_cond_overheat)})")
+
             if _major_flow.get('toxic_disclosure') or _cat_tier == 'F':
                 _score = min(_score, 74.0)
             elif _head_ratio > 0.38:
                 _score = min(_score, 79.0)
-            elif _cat_tier == 'B' and _cat_delta <= 0.0 and not _major_flow.get('is_dual_buy') and _code not in catalyst_codes:
-                _score = min(_score, 88.0)
+            elif _cond_overheat:
+                _score = min(_score, 84.0)
 
             _score = max(0.0, min(_score, 99.0))
             _hp_str = "HTS 조건식 포착 → AI 90점+ 시 종가/스윙 분할 매수, 90점 미만 시 관망"
