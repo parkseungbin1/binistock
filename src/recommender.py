@@ -1193,10 +1193,13 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             logger.info(f"[종가베팅 이격과열 상투 차단] {name}({code}): {', '.join(overheat_msgs)}")
             filter_fail_reasons.append(f"⚠️이격과열상투({', '.join(overheat_msgs)})")
 
-        # +10% ~ +15% 구간은 5일선 이격도 +10.0% 이하 첫 출발 기준봉만 허용 (연속 급등 상투 차단)
-        if change_pct > 10.0 and disp5_pct > 10.0:
-            logger.info(f"[종가베팅 연속급등 상투 차단] {name}({code}): +{change_pct:.1f}% 5일선 이격 +{disp5_pct:.1f}% > +10.0% 초과")
-            filter_fail_reasons.append(f"⚠️5일선이격과열(+{disp5_pct:.1f}%)")
+        # +10% ~ +15% 구간: 5일선 이격 +13.0% 초과 극단 괴리 또는 (+10.0% 초과 & 5거래일 누적 +18.0% 초과 연속급등 상투)만 차단
+        if change_pct > 10.0 and (disp5_pct > 13.0 or (disp5_pct > 10.0 and chg_5d_pct > 18.0)):
+            logger.info(
+                f"[종가베팅 연속급등 상투 차단] {name}({code}): +{change_pct:.1f}% "
+                f"5일선 이격 +{disp5_pct:.1f}% / 5일누적 +{chg_5d_pct:.1f}%"
+            )
+            filter_fail_reasons.append(f"⚠️5일선이격과열(+{disp5_pct:.1f}%/5일+{chg_5d_pct:.1f}%)")
 
         min_req_turnover = 0.4 if marcap >= 50000 * 1e8 else 1.0
         if turnover_pct < min_req_turnover and amount_eok < 700:
