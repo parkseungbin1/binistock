@@ -218,7 +218,7 @@ def get_morning_sell_guide(time_label="07:40", is_nxt=True):
     msg = f"🌅 <b>[{target_title}]</b> ({date_str} {time_label} 알림)\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"🎯 <b>핵심 전략</b>: <b>{core_action}</b>\n"
-    msg += f"📊 <b>시장 점수</b>: <b>{score}점</b> [{gauge}] {icon} | <b>{status_label}</b>\n"
+    msg += f"📊 <b>텔레그램 시황 점수</b>: <b>{score}점</b> [{gauge}] {icon} | <b>{status_label}</b>\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
     msg += "⚡ <b>10초 글로벌 팩트 체크</b>\n"
@@ -332,13 +332,35 @@ def get_closing_betting_guide():
     vix_str = f"🌪️ VIX: <b>{vix_close}</b>" if vix_close else ""
     us10y_str = f"📈 美10년물: <b>{us10y_price:.2f}%</b>" if us10y_price else ""
 
+    ai_risk_line = ""
+    try:
+        from src.risk_score import compute_risk_score
+        vix_val_ms = float(str(vix_close).replace(',', '')) if vix_close else 20.0
+        cnn_s_ms, _ = fetch_cnn_fear_greed()
+        ai_risk_val = compute_risk_score({
+            'fut_ratio': fut_ratio,
+            'kp_ratio': kp_ratio,
+            'kd_ratio': kd_ratio,
+            'kp_for_num': kp_for_num,
+            'kp_inst_num': kp_inst_num,
+            'kd_for_num': kd_for_num,
+            'kd_inst_num': kd_inst_num,
+            'cnn_score': cnn_s_ms if cnn_s_ms is not None else 50.0,
+            'vix': vix_val_ms,
+        })
+        risk_badge = "🟢 65점 이하 매수허용" if ai_risk_val <= 65 else "🚨 65점 초과 매수차단"
+        ai_risk_line = f"🛡️ <b>AI 시황 리스크(매매봇 기준)</b>: <b>{ai_risk_val}점</b> ({risk_badge})\n"
+    except Exception:
+        ai_risk_line = ""
+
     now_kst = datetime.now(KST)
     ko_wd = ['월', '화', '수', '목', '금', '토', '일'][now_kst.weekday()]
     date_str = f"{now_kst.strftime('%m/%d')}({ko_wd})"
     msg = f"🎯 <b>[15:30 정규장 1차 종가베팅 가이드]</b> ({date_str} 15:10 알림)\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"🎯 <b>핵심 전략</b>: <b>{core_action}</b>\n"
-    msg += f"📊 <b>시장 점수</b>: <b>{score}점</b> [{gauge}] | <b>{betting_label}</b>\n"
+    msg += f"📊 <b>텔레그램 시황 점수</b>: <b>{score}점</b> [{gauge}] | <b>{betting_label}</b>\n"
+    msg += ai_risk_line
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
     msg += "⚡ <b>정규장 마감 수급 & 팩트 체크</b>\n"
