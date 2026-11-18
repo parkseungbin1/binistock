@@ -247,6 +247,11 @@ def generate_html():
             closing_picks = []
         else:
             closing_picks = latest_record['picks']
+    elif is_closing_window and hm_kst > 1545 and latest_record and latest_record.get('date') == today_str_kst and latest_record.get('picks'):
+        # 15:45 이후 장외/코드푸시 재빌드 시 당일 15:10 공식 확정 추천 종목을 그대로 보존
+        closing_ref_date = today_str_kst
+        closing_evaluated = bool(latest_record.get('evaluated', False))
+        closing_picks = latest_record['picks']
     else:
         closing_ref_date = today_str_kst
         closing_evaluated = False
