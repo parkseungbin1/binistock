@@ -1758,17 +1758,17 @@
           "catalyst_url": "https://n.news.naver.com/mnews/article/008/0005442087",
           "catalyst_source": "머니투데이",
           "catalyst_body": "반도체 검사장비 기업 와이씨가 고객사의 반도체 증설에 힘입어 내년 영업이익이 3자릿수 성장할 것이라는 관측이 나왔다. 송혜수·김형태 신한투자증권 연구원은 17일 리포트에서 \"와이씨에 대한 투자의견 ",
-          "close_price": 14900,
-          "price": 14900,
+          "close_price": 15170,
+          "price": 15170,
           "change_pct": 8.6,
           "amount_eok": 438,
           "marcap": 1222475715000,
           "marcap_str": "1조 2,225억",
-          "target_1": 15198,
+          "target_1": 15625,
           "target_1_pct": "+2.0%",
-          "target_2": 15645,
+          "target_2": 15928,
           "target_2_pct": "+5.0%",
-          "stop_loss": 14602,
+          "stop_loss": 14867,
           "stop_loss_pct": "-2.0%",
           "score": 99,
           "reason": "거래대금 438억 폭발(시총회전율 3.6%) · 고가 마감 양봉(윗꼬리 24%) · 차트: 🎯 20일 박스권 상단 저항 돌파 안착 · 상대거래량 RVOL 2.4배(회전율 3.6%) · 당일 VWAP 상회(+2.5% · 고점 09:55) · 🔥당일 주도섹터(주도주) 동조화 · 🏦기관 연속 순매수 매집(+3점)",
@@ -1782,14 +1782,22 @@
             "기관매집"
           ],
           "sr_status": "🎯 20일 박스권 상단 저항 돌파 안착",
-          "support_price": 14620,
+          "support_price": 14867,
           "next_resistance": "18,690원 (+25.3% 여유)",
-          "chart_url": "https://m.stock.naver.com/domestic/stock/232140/total"
+          "chart_url": "https://m.stock.naver.com/domestic/stock/232140/total",
+          "open_price": 15110,
+          "next_high_price": 15120,
+          "gap_pct": -0.4,
+          "high_pct": -0.33,
+          "is_success": false,
+          "plan_return_pct": -0.4
         }
       ],
-      "evaluated": false,
+      "evaluated": true,
       "blocked": false,
-      "risk_score": 49
+      "risk_score": 49,
+      "success_count": 0,
+      "total_count": 1
     }
   ]
 }
