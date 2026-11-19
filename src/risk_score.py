@@ -147,6 +147,15 @@ def compute_risk_score(context: dict) -> int:
     # 9. CNN 공포탐욕 위험도 (3점 만점 — 0점 극단공포 -> 1.0, 100점 극단탐욕 -> 0.0)
     cnn_risk = clamp((100.0 - cnn_score) / 100.0) * 3.0
 
+    # 10. 국내 디커플링 단독 급락·투매 가드 (+8점):
+    #     미국 선물이 강세여도 한국장(코스피·코스닥) 평균 -1.2%↓ + 외인·기관 합산 -2,000억↓ 동반 투매,
+    #     또는 코스피/코스닥 중 한 곳이라도 -1.8%↓ 급락 시 60점 초과 차단이 작동하도록 보정
+    avg_kr_ratio = (kp_ratio + kd_ratio) / 2.0
+    kr_decoupling_guard = 8.0 if (
+        (avg_kr_ratio <= -1.2 and total_major_eok <= -2000.0)
+        or (kp_ratio <= -1.8 or kd_ratio <= -1.8)
+    ) else 0.0
+
     total_score = (
         fut_risk
         + sox_risk
@@ -159,6 +168,7 @@ def compute_risk_score(context: dict) -> int:
         + vix_risk
         + us10y_risk
         + cnn_risk
+        + kr_decoupling_guard
     )
     clamped_score = int(round(clamp(total_score, 0.0, 100.0)))
     return clamped_score

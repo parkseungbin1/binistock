@@ -629,10 +629,41 @@ def get_midday_market_guide():
             f"• <b>원칙</b>: 14:00 종가베팅 사전 후보 종목 압축에 집중하세요."
         )
 
+    # 13:00 오후장 기준 AI 시황 리스크 (매매봇 기준) 병기
+    mid_risk_line = ""
+    try:
+        from src.risk_score import compute_risk_score, get_risk_assessment
+    except ImportError:
+        from risk_score import compute_risk_score, get_risk_assessment
+    try:
+        mid_vix_c, _ = fetch_vix()
+        _, mid_us10y_d = fetch_us10y()
+        mid_risk = compute_risk_score({
+            'fut_ratio': fut_ratio or 0.0,
+            'sox_ratio': 0.0,
+            'kp_ratio': kp_ratio,
+            'kd_ratio': kd_ratio,
+            'fx_ratio': fx_ratio or 0.0,
+            'fx_close': fx_close or 1350.0,
+            'cnn_score': cnn_score or 50.0,
+            'vix': float(str(mid_vix_c).replace(',', '')) if mid_vix_c else 18.0,
+            'us10y': mid_us10y_d or 0.0,
+            'kp_for_num': kp_for_num,
+            'kp_inst_num': kp_inst_num,
+            'kd_for_num': kd_for_num,
+            'kd_inst_num': kd_inst_num,
+        })
+        mid_assess = get_risk_assessment(mid_risk)
+        mid_risk_line = f"🛡️ <b>AI 시황 리스크 (매매봇 기준)</b>: <b>{mid_risk}점</b> ({mid_assess['grade']} · 60점 초과 시 매수 차단)\n"
+    except Exception as _re:
+        logger.debug(f"13:00 오후장 AI 리스크 산출 생략: {_re}")
+
     msg = f"☀️ <b>[13:00 오후장 개시 & 수급 중간점검]</b> ({date_str} 13:00 알림)\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"🎯 <b>시장 판정</b>: <b>{market_status}</b>\n"
-    msg += f"📊 <b>오후장 점수</b>: <b>{score}점</b> [{gauge}] | <b>메이저 순매수: {total_major:+,}억</b>\n"
+    msg += f"📊 <b>텔레그램 시황 점수</b>: <b>{score}점</b> [{gauge}] | <b>메이저 순매수: {total_major:+,}억</b>\n"
+    if mid_risk_line:
+        msg += mid_risk_line
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
     msg += "⚡ <b>오후장 외인/기관 실시간 수급 현황</b>\n"

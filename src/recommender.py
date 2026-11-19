@@ -1230,12 +1230,14 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
 
         if True:
 
-            # 점수 산정: 기본 40 + 수급파괴력(절대거래대금 20점 + 시총회전율 10점 = 최대 30점) + 캔들완성도(최대 15) + 지지저항돌파(최대 30)
-            abs_vol_score = min(amount_eok / 40.0, 20.0)        # 거래대금 절대 규모 (800억 이상 시 20점 만점 -> 삼성SDS 827억, 삼성E&A 1172억 모두 만점!)
-            turnover_score = min(turnover_pct * 2.0, 10.0)      # 시총 대비 회전율 가산점 (회전율 5% 이상 시 10점 만점 -> 중형 대장주 탄력 우대!)
-            volume_score = abs_vol_score + turnover_score
-            candle_score = (1.0 - head_ratio) * 15.0
-            score = 40.0 + volume_score + candle_score + sr_score
+            # [100점 만점 가중치 + 감점 체계]
+            # 기본(34) + 수급규모(16) + 차트·캔들(22) + 탄력·메이저수급(14) + 섹터·주도력(6) + 재료·공시(8) = 정확히 100.0점 만점
+            abs_vol_score = min(amount_eok / 40.0, 10.0)        # 거래대금 절대 규모 (400억 이상 10점 만점)
+            turnover_score = min(turnover_pct * 1.5, 6.0)       # 시총 대비 회전율 (4% 이상 6점 만점)
+            volume_score = abs_vol_score + turnover_score       # 최대 16점
+            sr_weighted = 15.0 if sr_score >= 25.0 else (13.0 if sr_score >= 15.0 else (6.0 if sr_score > 0 else 0.0))
+            candle_score = max(0.0, (1.0 - head_ratio) * 7.0)   # 최대 7점 (+ sr_weighted 최대 15점 = 22점)
+            score = 34.0 + volume_score + sr_weighted + candle_score
             
             # 기존 AI 포착 근거 100% 보존 + 회전율 및 지지·저항 차트 근거 추가
             reasons = [
@@ -1244,33 +1246,39 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             ]
             if sr_status:
                 reasons.append(f"차트: {sr_status}")
-            if rvol >= 2.0:
-                score += min((rvol - 1.0) * 2.0, 6.0)
-                reasons.append(f"상대거래량 RVOL {rvol:.1f}배(회전율 {turnover_pct:.1f}%)")
+            if rvol > 1.0:
+                score += min(((rvol - 1.0) / 1.5) * 4.0, 4.0)   # RVOL 최대 4점 (2.5배 만점)
+                if rvol >= 2.0:
+                    reasons.append(f"상대거래량 RVOL {rvol:.1f}배(회전율 {turnover_pct:.1f}%)")
             if micro:
                 vwap_diff = micro.get('vwap_diff_pct', 0.0)
                 peak_t = micro.get('peak_time', '')
                 auc_diff = micro.get('closing_auction_diff', 0.0)
                 if vwap_diff >= 0:
-                    score += 3.0
+                    score += 2.5
                     reasons.append(f"당일 VWAP 상회(+{vwap_diff:.1f}% · 고점 {peak_t})")
                 if auc_diff >= 0.3:
-                    score += 2.0
+                    score += 1.5
                     reasons.append(f"막판 동시호가 수급 유입(+{auc_diff:.2f}%)")
+            sec_bonus = 0.0
             if stock_sec in hot_sector_names:
-                score += 5.0
+                sec_bonus += 3.0
                 reasons.append(f"🔥당일 주도섹터({stock_sec}) 동조화")
+            leader_or_win = False
             if code in hot_leader_codes:
-                score += 4.0
+                leader_or_win = True
                 reasons.append(f"👑주도섹터({stock_sec}) 1등 대장주")
             if stock_sec in winning_sectors:
-                score += 4.0
-                reasons.append(f"🧠30일 고승률 섹터 자가보정(+4점)")
+                leader_or_win = True
+                reasons.append("🧠30일 고승률 섹터 자가보정")
+            if leader_or_win:
+                sec_bonus += 3.0
+            score += min(sec_bonus, 6.0)                        # 섹터·주도력 최대 6점
 
             tags = ['거래대금폭발', '단단한양봉', '익일시초가노림'] + sr_tags
             if code in hot_leader_codes:
                 tags.append("섹터1등대장")
-            if change_pct > 10.0:
+            if change_pct > 10.0 and disp5_pct is not None:
                 reasons.append(f"🔥S급 첫출발 기준봉(5일선이격 +{disp5_pct:.1f}%)")
                 tags.append("S급기준봉")
 
@@ -1279,41 +1287,40 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 reasons.append("🏦외인·기관 쌍끌이 수급 유입(+6점)")
                 tags.append("쌍끌이수급")
             elif major_flow.get('is_organ_accum'):
-                score += 3.0
-                reasons.append("🏦기관 연속 순매수 매집(+3점)")
+                score += 4.5
+                reasons.append("🏦기관 연속 순매수 매집(+4.5점)")
                 tags.append("기관매집")
             elif major_flow.get('is_major_dump'):
                 score -= 5.0
                 reasons.append("⚠️최근 3일 외인·기관 동시 순매도(-5점)")
+            else:
+                score += 1.0                                    # 수급 중립 기본 1점 (최대 6점 체계 정합)
 
-            # [5단계 뉴스·공시 정밀 등급(S+ / S / A / B / C / F) 스코어링 통합]
+            # [5단계 뉴스·공시 정밀 등급(S+ / S / A / B / C / F) 100점 만점 가중치 통합 (최대 +8점 / 감점 최대 -20점)]
             cat_info = fetch_stock_catalyst(code, name, stock_sec)
             cat_tier = cat_info.get('tier', 'B')
-            cat_delta = float(cat_info.get('score_delta', 0.0))
-            if code in catalyst_codes and cat_tier not in ('C', 'F') and cat_delta < 10.0:
-                cat_delta = 12.0
+            if code in catalyst_codes and cat_tier not in ('S+', 'S', 'C', 'F'):
                 cat_tier = 'S'
-                cat_info['tier_label'] = '🟢S급 DART 호재 공시(+12점)'
-            if cat_delta != 0.0:
-                score += cat_delta
-                reasons.append(cat_info.get('tier_label', f"뉴스·공시({cat_delta:+.0f}점)"))
-                if cat_delta >= 10.0:
+                cat_info['tier_label'] = '🟢S급 DART 호재 공시(+7점)'
+            _cat_weight_map = {'S+': 8.0, 'S': 7.0, 'A': 5.0, 'B': 3.0, 'C': -8.0, 'F': -20.0}
+            cat_score = _cat_weight_map.get(cat_tier, 3.0)
+            ev_info = event_boost_map.get(name) or event_boost_map.get(code)
+            if ev_info and ev_info.get('boost_score', 0) > 0 and cat_tier not in ('C', 'F'):
+                cat_score = min(8.0, cat_score + 2.0)
+                reasons.append(f"🎯{ev_info.get('tag')} (호재모멘텀)")
+                tags.append("D-Day호재모멘텀")
+            score += cat_score
+            if cat_tier != 'B':
+                reasons.append(cat_info.get('tier_label', f"뉴스·공시({cat_tier}등급 {cat_score:+.0f}점)"))
+                if cat_tier in ('S+', 'S'):
                     tags.append("실적/공시호재")
-                elif cat_delta < 0:
+                elif cat_score < 0:
                     tags.append("⚠️재료소멸주의")
 
             # 제약/바이오 윗꼬리 과다(25% 초과) + 수급 부재 시 재료소멸 추가 방어
             if stock_sec == '제약/바이오' and head_ratio > 0.25 and not major_flow.get('is_dual_buy'):
                 score -= 6.0
                 reasons.append(f"⚠️바이오 윗꼬리({int(head_ratio*100)}%) 재료소멸 주의(-6점)")
-
-            ev_info = event_boost_map.get(name) or event_boost_map.get(code)
-            if ev_info:
-                b_score = ev_info.get('boost_score', 0)
-                if b_score > 0:
-                    score += b_score
-                    reasons.append(f"🎯{ev_info.get('tag')} (+{b_score}점)")
-                    tags.append("D-Day호재모멘텀")
 
             if filter_fail_reasons:
                 score -= 10.0 * len(filter_fail_reasons)
@@ -1964,11 +1971,12 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             _micro = analyze_intraday_microstructure(_code, _close_p)
             _major_flow = fetch_stock_major_flow(_code, toxic_lookback_days=7)
 
-            # 종가베팅과 100% 동일한 AI 점수 공식 적용
-            _abs_vol_score = min(_amount_eok / 40.0, 20.0)
-            _turnover_score = min(_turnover_pct * 2.0, 10.0)
-            _candle_score = max(0.0, (1.0 - _head_ratio) * 15.0)
-            _score = 40.0 + _abs_vol_score + _turnover_score + _candle_score + _sr_score
+            # 종가베팅과 100% 동일한 [100점 만점 가중치 + 감점 체계] 적용
+            _abs_vol_score = min(_amount_eok / 40.0, 10.0)
+            _turnover_score = min(_turnover_pct * 1.5, 6.0)
+            _sr_weighted = 15.0 if _sr_score >= 25.0 else (13.0 if _sr_score >= 15.0 else (6.0 if _sr_score > 0 else 0.0))
+            _candle_score = max(0.0, (1.0 - _head_ratio) * 7.0)
+            _score = 34.0 + _abs_vol_score + _turnover_score + _sr_weighted + _candle_score
 
             _reasons = [
                 f"🎯 조건식('60일이상추가 1000억') 포착",
@@ -1977,41 +1985,47 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             ]
             if _sr_status:
                 _reasons.append(f"차트: {_sr_status}")
-            if _rvol >= 2.0:
-                _score += min((_rvol - 1.0) * 2.0, 6.0)
-                _reasons.append(f"상대거래량 RVOL {_rvol:.1f}배")
+            if _rvol > 1.0:
+                _score += min(((_rvol - 1.0) / 1.5) * 4.0, 4.0)
+                if _rvol >= 2.0:
+                    _reasons.append(f"상대거래량 RVOL {_rvol:.1f}배")
             if _micro:
                 _vwap_diff = _micro.get('vwap_diff_pct', 0.0)
                 _peak_t = _micro.get('peak_time', '')
                 _auc_diff = _micro.get('closing_auction_diff', 0.0)
                 if _vwap_diff >= 0:
-                    _score += 3.0
+                    _score += 2.5
                     _reasons.append(f"당일 VWAP 상회(+{_vwap_diff:.1f}% · 고점 {_peak_t})")
                 if _auc_diff >= 0.3:
-                    _score += 2.0
+                    _score += 1.5
                     _reasons.append(f"막판 동시호가 유입(+{_auc_diff:.2f}%)")
                 if _micro.get('is_morning_dump'):
                     _score -= 6.0
                     _reasons.append(f"⚠️ 오전 고점({_peak_t}) 대비 VWAP 하회(-6점)")
+            _sec_bonus = 0.0
             if _stock_sec in hot_sector_names:
-                _score += 5.0
+                _sec_bonus += 3.0
                 _reasons.append(f"🔥주도섹터({_stock_sec}) 동조화")
+            _leader_or_confirm = False
             if _code in hot_leader_codes:
-                _score += 4.0
-                _reasons.append(f"👑주도섹터 1등 대장주")
+                _leader_or_confirm = True
+                _reasons.append("👑주도섹터 1등 대장주")
             if _stock_sec in winning_sectors:
-                _score += 4.0
-                _reasons.append(f"🧠고승률 섹터(+4점)")
+                _leader_or_confirm = True
+                _reasons.append("🧠고승률 섹터")
 
             _tags = ['HTS조건식', '60일1000억'] + _sr_tags
             if _code in _closing_code_set:
-                _score += 5.0
+                _leader_or_confirm = True
                 _reasons.append("👑AI 종가베팅 동시 포착(더블컨펌)")
                 _tags.insert(0, "👑종가더블컨펌")
             elif _code in _swing_code_set:
-                _score += 4.0
+                _leader_or_confirm = True
                 _reasons.append("🌊AI 스윙 동시 포착(더블컨펌)")
                 _tags.insert(0, "🌊스윙더블컨펌")
+            if _leader_or_confirm:
+                _sec_bonus += 3.0
+            _score += min(_sec_bonus, 6.0)
 
             if _head_ratio > 0.38:
                 _score -= 6.0
@@ -2026,35 +2040,34 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 _reasons.append("🏦외인·기관 쌍끌이 수급(+6점)")
                 _tags.append("쌍끌이수급")
             elif _major_flow.get('is_organ_accum'):
-                _score += 3.0
-                _reasons.append("🏦기관 연속 순매수(+3점)")
+                _score += 4.5
+                _reasons.append("🏦기관 연속 순매수(+4.5점)")
                 _tags.append("기관매집")
             elif _major_flow.get('is_major_dump'):
                 _score -= 5.0
                 _reasons.append("⚠️최근 3일 외인·기관 순매도(-5점)")
+            else:
+                _score += 1.0
 
             _cat_info = fetch_stock_catalyst(_code, _name, _stock_sec)
             _cat_tier = _cat_info.get('tier', 'B')
-            _cat_delta = float(_cat_info.get('score_delta', 0.0))
-            if _code in catalyst_codes and _cat_tier not in ('C', 'F') and _cat_delta < 10.0:
-                _cat_delta = 12.0
+            if _code in catalyst_codes and _cat_tier not in ('S+', 'S', 'C', 'F'):
                 _cat_tier = 'S'
-                _cat_info['tier_label'] = '🟢S급 DART 공시 호재(+12점)'
-            if _cat_delta != 0.0:
-                _score += _cat_delta
-                _reasons.append(_cat_info.get('tier_label', f"뉴스·공시({_cat_delta:+.0f}점)"))
-                if _cat_delta >= 10.0:
-                    _tags.append("실적/공시호재")
-                elif _cat_delta < 0:
-                    _tags.append("⚠️재료소멸주의")
-
+                _cat_info['tier_label'] = '🟢S급 DART 공시 호재(+7점)'
+            _cat_weight_map = {'S+': 8.0, 'S': 7.0, 'A': 5.0, 'B': 3.0, 'C': -8.0, 'F': -20.0}
+            _cat_score = _cat_weight_map.get(_cat_tier, 3.0)
             _ev_info = event_boost_map.get(_name) or event_boost_map.get(_code)
-            if _ev_info:
-                _b_score = _ev_info.get('boost_score', 0)
-                if _b_score > 0:
-                    _score += _b_score
-                    _reasons.append(f"🎯{_ev_info.get('tag')} (+{_b_score}점)")
-                    _tags.append("D-Day호재모멘텀")
+            if _ev_info and _ev_info.get('boost_score', 0) > 0 and _cat_tier not in ('C', 'F'):
+                _cat_score = min(8.0, _cat_score + 2.0)
+                _reasons.append(f"🎯{_ev_info.get('tag')} (호재모멘텀)")
+                _tags.append("D-Day호재모멘텀")
+            _score += _cat_score
+            if _cat_tier != 'B':
+                _reasons.append(_cat_info.get('tier_label', f"뉴스·공시({_cat_tier}등급 {_cat_score:+.0f}점)"))
+                if _cat_tier in ('S+', 'S'):
+                    _tags.append("실적/공시호재")
+                elif _cat_score < 0:
+                    _tags.append("⚠️재료소멸주의")
 
             _disp20_pct = _sr.get('disp20_pct', 0.0) if _sr else 0.0
             _disp60_pct = _sr.get('disp60_pct', 0.0) if _sr else 0.0
