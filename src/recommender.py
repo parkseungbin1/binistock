@@ -1230,14 +1230,14 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
 
         if True:
 
-            # [100점 만점 가중치 + 감점 체계]
-            # 기본(34) + 수급규모(16) + 차트·캔들(22) + 탄력·메이저수급(14) + 섹터·주도력(6) + 재료·공시(8) = 정확히 100.0점 만점
+            # [100점 만점 가중치 + 감점 체계 (기본 39 + 가점 최대 66 = 105점 → 99점 상한)]
+            # 우량 주도주(500억+ 돌파+수급)는 90~95점 통과, 평범한 종목은 85점 이하 관망, 결격/감점은 84/74점 이하 차단
             abs_vol_score = min(amount_eok / 40.0, 10.0)        # 거래대금 절대 규모 (400억 이상 10점 만점)
             turnover_score = min(turnover_pct * 1.5, 6.0)       # 시총 대비 회전율 (4% 이상 6점 만점)
             volume_score = abs_vol_score + turnover_score       # 최대 16점
             sr_weighted = 15.0 if sr_score >= 25.0 else (13.0 if sr_score >= 15.0 else (6.0 if sr_score > 0 else 0.0))
             candle_score = max(0.0, (1.0 - head_ratio) * 7.0)   # 최대 7점 (+ sr_weighted 최대 15점 = 22점)
-            score = 34.0 + volume_score + sr_weighted + candle_score
+            score = 39.0 + volume_score + sr_weighted + candle_score
             
             # 기존 AI 포착 근거 100% 보존 + 회전율 및 지지·저항 차트 근거 추가
             reasons = [
@@ -1971,12 +1971,12 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
             _micro = analyze_intraday_microstructure(_code, _close_p)
             _major_flow = fetch_stock_major_flow(_code, toxic_lookback_days=7)
 
-            # 종가베팅과 100% 동일한 [100점 만점 가중치 + 감점 체계] 적용
+            # 종가베팅과 100% 동일한 [100점 만점 가중치 + 감점 체계 (기본 39 + 가점 66 → 99점 상한)] 적용
             _abs_vol_score = min(_amount_eok / 40.0, 10.0)
             _turnover_score = min(_turnover_pct * 1.5, 6.0)
             _sr_weighted = 15.0 if _sr_score >= 25.0 else (13.0 if _sr_score >= 15.0 else (6.0 if _sr_score > 0 else 0.0))
             _candle_score = max(0.0, (1.0 - _head_ratio) * 7.0)
-            _score = 34.0 + _abs_vol_score + _turnover_score + _sr_weighted + _candle_score
+            _score = 39.0 + _abs_vol_score + _turnover_score + _sr_weighted + _candle_score
 
             _reasons = [
                 f"🎯 조건식('60일이상추가 1000억') 포착",
