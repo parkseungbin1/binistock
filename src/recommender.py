@@ -1560,8 +1560,8 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 score = min(score, 74.0)
             score = min(99.0, max(0.0, score))
             final_sw_score = int(round(min(score, 99.0)))
-            if final_sw_score < 90:
-                logger.info(f"[스윙 90점 미달(관망 후보 보존)] {name}({code}): AI 점수 {score:.1f}점 < 기준 90점 (재료등급: {cat_tier_sw})")
+            if final_sw_score < 85:
+                logger.info(f"[스윙 85점 미달(관망 후보 보존)] {name}({code}): AI 점수 {score:.1f}점 < 기준 85점 (재료등급: {cat_tier_sw})")
 
             stg = resolve_swing_targets(close_p, regime=regime, market_context=market_context)
             return {
@@ -1582,7 +1582,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'target_3_pct': stg['target_3_pct'],
                 'stop_loss': stg['stop_loss'],
                 'stop_loss_pct': stg['stop_loss_pct'],
-                'holding_period': stg['holding_period'] if final_sw_score >= 90 else f"⏸️ AI {final_sw_score}점 (<90점 기준 미달) — 화면 점수 공개용 · 자동매수 관망",
+                'holding_period': stg['holding_period'] if final_sw_score >= 85 else f"⏸️ AI {final_sw_score}점 (<85점 기준 미달) — 화면 점수 공개용 · 자동매수 관망",
                 'score': final_sw_score,
                 'reason': " · ".join(reasons),
                 'tags': list(dict.fromkeys(tags)),
@@ -1594,7 +1594,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                 'vwap_diff_pct': micro.get('vwap_diff_pct', 0.0) if micro else 0.0,
                 'marcap': int(marcap),
                 'marcap_str': marcap_str,
-                'is_sub_threshold': final_sw_score < 90,
+                'is_sub_threshold': final_sw_score < 85,
             }
         except Exception as e:
             logger.debug(f"스윙 후보 분석 예외({code}): {e}")

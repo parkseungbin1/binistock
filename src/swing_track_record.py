@@ -121,7 +121,7 @@ def record_swing_picks(picks, risk_score=None, is_blocked=False):
         t1 = int(round(entry_p * (1 + T1_PCT / 100)))
         t2 = int(round(entry_p * (1 + T2_PCT / 100)))
         sl = int(round(entry_p * (1 + SL_PCT / 100)))
-        is_sim_only = bool(is_blocked or p.get('is_sub_threshold') or int(p.get('score', 92)) < 90)
+        is_sim_only = bool(is_blocked or p.get('is_sub_threshold') or int(p.get('score', 92)) < 85)
         item = {
             'code': p['code'],
             'name': p['name'],
