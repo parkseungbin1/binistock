@@ -104,8 +104,12 @@ def record_closing_picks(picks, risk_score=None, is_blocked=False):
         date_str = now.strftime('%Y-%m-%d')
     existing = [h for h in data.get('history', []) if h.get('date') == date_str]
     if existing and existing[0].get('picks'):
-        logger.info(f"[{date_str}] 이미 성과 검증 완료된 기록이므로 보존")
-        return
+        prev_has_90 = any(int(x.get('score', 0)) >= 90 for x in existing[0].get('picks', []))
+        new_has_90 = any(int(x.get('score', 0)) >= 90 for x in picks)
+        if existing[0].get('evaluated') or prev_has_90 or not new_has_90:
+            logger.info(f"[{date_str}] 이미 성과 검증 완료되었거나 90점+ 공식 기록이므로 보존")
+            return
+        logger.info(f"[{date_str}] 기존 90점 미만 관망 기록을 최신 90점+ 공식 종목으로 업그레이드 갱신")
     pick_items = []
     for p in picks:
         close_p = p.get('price', p.get('close_price', 0))
