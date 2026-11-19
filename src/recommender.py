@@ -1800,11 +1800,11 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
     except Exception as e:
         logger.debug(f"기준봉 눌림목 스캔 예외: {e}")
 
-    # 스윙 추천주 1~3등(TOP 3)이 대시보드와 텔레그램에 항상 일관되게 표시되도록 보충 및 AI 점수순 정렬 (90점 이상만 허용)
+    # 스윙 추천주 1~3등(TOP 3)이 대시보드와 텔레그램에 항상 일관되게 표시되도록 보충 및 AI 점수순 정렬 (85점 이상 허용)
     if len(swing_picks) < 3 and pullback_picks:
         existing_sw_codes = {s['code'] for s in swing_picks}
         for pb in pullback_picks:
-            if pb.get('score', 0) >= 90 and pb['code'] not in existing_sw_codes:
+            if pb.get('score', 0) >= 85 and pb['code'] not in existing_sw_codes:
                 swing_picks.append(dict(pb))
                 existing_sw_codes.add(pb['code'])
             if len(swing_picks) >= 3:

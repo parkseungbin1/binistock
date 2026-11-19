@@ -536,7 +536,7 @@ def generate_html():
         )
     swing_cards_html = "".join([render_rec_card(p, "theme-swing") for p in swing_picks]) if swing_picks else (
         "<div class='empty-card'>"
-        "🛡️ 오늘 엄격한 S급 기준(20일선 우상향 눌림목·수급·AI 90점 이상)을 모두 통과한 스윙 종목이 없어 무포지션 현금 보존을 권장합니다."
+        "🛡️ 오늘 엄격한 S급 기준(20일선 우상향 눌림목·수급·AI 85점 이상)을 모두 통과한 스윙 종목이 없어 무포지션 현금 보존을 권장합니다."
         "</div>"
     )
     breakout_cards_html = "".join([render_rec_card(p, "theme-breakout") for p in breakout_picks])
