@@ -850,17 +850,18 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/145020/total",
-          "highest_price": 208500,
+          "highest_price": 210000,
           "lowest_price": 192500,
-          "max_return_pct": 8.31,
-          "status": "1차 분할 달성",
+          "max_return_pct": 9.09,
+          "status": "2차 전량 달성",
           "is_blocked_sim": true,
-          "completed": false,
+          "completed": true,
           "holding_days": 2,
-          "is_success": true
+          "is_success": true,
+          "final_return_pct": 9.09
         }
       ],
-      "evaluated": false,
+      "evaluated": true,
       "risk_score": 40,
       "blocked": true
     },
