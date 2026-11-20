@@ -899,12 +899,12 @@
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/035720/total",
           "highest_price": 32700,
-          "lowest_price": 31450,
+          "lowest_price": 31150,
           "max_return_pct": 2.19,
-          "status": "진행중 (1일차)",
+          "status": "진행중 (2일차)",
           "is_blocked_sim": true,
           "completed": false,
-          "holding_days": 1
+          "holding_days": 2
         }
       ],
       "evaluated": false,
@@ -945,13 +945,13 @@
             "실적모멘텀"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/035720/total",
-          "highest_price": 31900,
-          "lowest_price": 31900,
-          "max_return_pct": 0.0,
-          "status": "진행중",
+          "highest_price": 32250,
+          "lowest_price": 31150,
+          "max_return_pct": 1.1,
+          "status": "진행중 (1일차)",
           "is_blocked_sim": false,
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1
         }
       ],
       "evaluated": false,
