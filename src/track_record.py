@@ -603,6 +603,17 @@ def render_monthly_history_html():
 
             marcap_str = p.get('marcap_str', '')
             marcap_tag = f" <span class='hist-marcap'>시총 {marcap_str}</span>" if marcap_str else ""
+            raw_sc = p.get('score')
+            if raw_sc is not None:
+                sc_i = int(round(float(raw_sc)))
+                sc_style = (
+                    "background:#78350f; color:#fde68a; border:1px solid #d97706;"
+                    if sc_i >= 90 else
+                    "background:#1e293b; color:#94a3b8; border:1px solid #334155;"
+                )
+                score_tag = f" <span class='hist-marcap' style='{sc_style} font-weight:700;'>⭐ AI {sc_i}점</span>"
+            else:
+                score_tag = ""
 
             items_html += f"""
             <div class="hist-item">
@@ -611,7 +622,7 @@ def render_monthly_history_html():
                         <a href="https://m.stock.naver.com/domestic/stock/{code}/total" target="_blank" rel="noopener noreferrer">
                             <b>{name}</b> <span class="hist-code">{code}</span>
                         </a>
-                        <span class="hist-sector">[{sec}]</span>{marcap_tag}
+                        <span class="hist-sector">[{sec}]</span>{marcap_tag}{score_tag}
                     </div>
                     <div class="hist-result">{res_str}</div>
                 </div>

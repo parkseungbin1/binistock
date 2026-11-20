@@ -456,6 +456,17 @@ def render_monthly_swing_history_html():
             h_days = p.get('holding_days', 0)
             marcap_str = p.get('marcap_str', '')
             marcap_tag = f" <span class='hist-marcap'>시총 {marcap_str}</span>" if marcap_str else ""
+            raw_sc = p.get('score')
+            if raw_sc is not None:
+                sc_i = int(round(float(raw_sc)))
+                sc_style = (
+                    "background:#1e3a8a; color:#bfdbfe; border:1px solid #3b82f6;"
+                    if sc_i >= 85 else
+                    "background:#1e293b; color:#94a3b8; border:1px solid #334155;"
+                )
+                score_tag = f" <span class='hist-marcap' style='{sc_style} font-weight:700;'>⭐ AI {sc_i}점</span>"
+            else:
+                score_tag = ""
             p_blocked = is_blocked or ('차단' in status) or bool(p.get('is_blocked_sim'))
 
             fin_ret = p.get('final_return_pct', 0.0) or 0.0
@@ -503,7 +514,7 @@ def render_monthly_swing_history_html():
                         <a href="https://m.stock.naver.com/domestic/stock/{code}/total" target="_blank" rel="noopener noreferrer">
                             <b>{name}</b> <span class="hist-code">{code}</span>
                         </a>
-                        <span class="hist-sector">[{sec}]</span>{marcap_tag}
+                        <span class="hist-sector">[{sec}]</span>{marcap_tag}{score_tag}
                     </div>
                     <div class="hist-result">{res_str}</div>
                 </div>
