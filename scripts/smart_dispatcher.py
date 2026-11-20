@@ -16,16 +16,20 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
 
-def run_py(script_name, args=None):
+def run_py(script_name, args=None, fatal=True):
     cmd = [sys.executable, str(ROOT / script_name)]
     if args:
         cmd.extend(args)
     logger.info(f"실행: {' '.join(cmd)}")
     res = subprocess.run(cmd)
     if res.returncode != 0:
-        logger.error(f"{script_name} 실행 실패 (코드 {res.returncode})")
-        sys.exit(res.returncode)
+        if fatal:
+            logger.error(f"{script_name} 실행 실패 (코드 {res.returncode})")
+            sys.exit(res.returncode)
+        logger.warning(f"⚠️ {script_name} 실행 실패 (코드 {res.returncode}) — 웹 대시보드 빌드는 계속 진행합니다.")
+        return False
     logger.info(f"✓ {script_name} 정상 완료")
+    return True
 
 
 def main():
@@ -74,43 +78,43 @@ def main():
     logger.info(f"[{time_str} KST] 결정된 작업: {action}")
 
     if action == 'digest_0700':
-        # 1. 07:00 날씨 & 주간 경제 캘린더
-        run_py('daily_digest.py')
+        # 1. 07:00 시황 & 주간 경제 캘린더
+        run_py('daily_digest.py', fatal=False)
 
     elif action == 'morning_735':
         # 2. 07:35 [08:00 NXT 개장 전 1차 시초가 매도 가이드] (07:40 전)
-        run_py('market_alert.py', ['--mode', 'morning_740', '--force'])
+        run_py('market_alert.py', ['--mode', 'morning_740', '--force'], fatal=False)
 
     elif action == 'disclosure_0810':
         # 3. 08:10 DART 실적발표(IR) 및 주요 공시 (있을 때만)
-        run_py('disclosure_alert.py', ['--morning'])
+        run_py('disclosure_alert.py', ['--morning'], fatal=False)
 
     elif action == 'morning_835':
         # 4. 08:35 [09:00 정규장 개장 전 최종 시초가 매도 가이드] (08:40 전)
-        run_py('market_alert.py', ['--mode', 'morning_840', '--force'])
+        run_py('market_alert.py', ['--mode', 'morning_840', '--force'], fatal=False)
 
     elif action == 'midday_1300':
         # 5. 13:00 [오후장 개시 & 외인/기관 수급 중간점검]
-        run_py('market_alert.py', ['--mode', 'midday_1300', '--force'])
+        run_py('market_alert.py', ['--mode', 'midday_1300', '--force'], fatal=False)
 
     elif action == 'preclosing_1400':
         # 6. 14:00 [15:10 종가베팅 1시간 전 사전 레이더 & 리스크 점검]
-        run_py('market_alert.py', ['--mode', 'preclosing_1400', '--force'])
+        run_py('market_alert.py', ['--mode', 'preclosing_1400', '--force'], fatal=False)
 
     elif action == 'closing_1510':
-        run_py('market_alert.py', ['--mode', 'closing', '--force'])
+        run_py('market_alert.py', ['--mode', 'closing', '--force'], fatal=False)
 
     elif action == 'close_1535':
         # 15:35 [정규장 최종 마감 시황 & 외인/기관 수급 종합 리포트]
-        run_py('market_alert.py', ['--mode', 'close_1535', '--force'])
+        run_py('market_alert.py', ['--mode', 'close_1535', '--force'], fatal=False)
 
     elif action == 'night_1940':
         # 6. 19:40 [20:00 NXT 야간 최종 종가베팅 가이드] + 야간 대장주 TOP 3
-        run_py('market_alert.py', ['--mode', 'night', '--force'])
+        run_py('market_alert.py', ['--mode', 'night', '--force'], fatal=False)
 
-    # 텔레그램 발송 완료 후, 항상 웹 대시보드(dist/index.html)를 즉시 실시간 동시 빌드하여 GitHub Pages로 자동 배포
+    # 텔레그램 발송 성공 여부와 무관하게, 항상 웹 대시보드(dist/index.html)를 즉시 실시간 빌드하여 GitHub Pages로 자동 배포
     logger.info("🌐 [웹 대시보드 실시간 동시 빌드] generate_web.py 실행 시작")
-    run_py('generate_web.py')
+    run_py('generate_web.py', fatal=True)
     logger.info("✅ [웹 대시보드 빌드 완료] GitHub Pages 배포 단계로 연동")
 
 
