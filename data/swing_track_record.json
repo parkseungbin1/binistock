@@ -948,15 +948,17 @@
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/035720/total",
           "highest_price": 32250,
-          "lowest_price": 31000,
+          "lowest_price": 30850,
           "max_return_pct": 1.1,
-          "status": "진행중 (1일차)",
+          "status": "손절 이탈",
           "is_blocked_sim": false,
-          "completed": false,
-          "holding_days": 1
+          "completed": true,
+          "holding_days": 1,
+          "is_success": false,
+          "final_return_pct": -3.0
         }
       ],
-      "evaluated": false,
+      "evaluated": true,
       "blocked": false,
       "risk_score": 42
     }
