@@ -276,29 +276,35 @@ def extract_burn_catalysts(ref_date: date = None) -> list:
 
 
 # ---------------------------------------------------------------------------
-# 4. 야간 거시경제 일정 수집 및 오버나잇 리스크 지수 산출 (Risk Guard)
+# 4. 야간 거시경제 일정 수집 및 오버나잇 리스크 지수 산출 (Risk Guard — 슬림 정밀판)
 # ---------------------------------------------------------------------------
+# - RED (80점, 매수 전면 차단 · 월 2~3일): 미국 4대 폭탄(FOMC, CPI, Core PCE, 비농업고용 NFP)
+# - YELLOW (50점, 비중 50% 축소): 한국은행 금통위, 미국 GDP, 네 마녀의 날(D-0)
+# - GREEN (<50점, 정상 매매 · 정보 참고용): 일반 PMI/ISM, 실업률, GTC 등
 HIGH_IMPACT_MACRO_KEYWORDS = [
-    ("CPI", 35, "미국 소비자물가지수(CPI) 발표"),
-    ("PCE", 30, "미국 개인소비지출(PCE) 물가지수 발표"),
-    ("FOMC", 40, "미국 연준 FOMC 기준금리 결정 / 기자회견"),
-    ("Non-Farm", 30, "미국 비농업고용지수(NFP) 발표"),
-    ("Unemployment Rate", 20, "미국/한국 실업률 발표"),
-    ("기준금리", 30, "한국은행 금통위 기준금리 결정"),
-    ("ISM", 15, "미국 ISM 구매관리자지수(PMI) 발표"),
-    ("수출입", 15, "관세청 수출입 동향 발표"),
-    ("GTC", 10, "엔비디아 GTC (경영진 변동성 주의)")
+    # [RED 80점: 미국 4대 거시 폭탄]
+    (("fomc", "연준 금리", "연방공개시장위원회", "fed interest rate"), 80, "미국 연준 FOMC 기준금리 결정 / 기자회견", True),
+    (("cpi", "소비자물가지수", "소비자물가"), 80, "미국 소비자물가지수(CPI) 발표", True),
+    (("pce", "소비지출물가지수", "개인소비지출"), 80, "미국 개인소비지출(PCE) 물가지수 발표", True),
+    (("non-farm", "nonfarm", "비농업고용", "비농업 부문"), 80, "미국 비농업고용지수(NFP) 발표", True),
+    # [YELLOW 50점: 비중 50% 축소 주의 지표]
+    (("한국 금리 결정", "기준금리", "금통위"), 50, "한국은행 금통위 기준금리 결정", False),
+    (("gdp", "국내총생산"), 50, "미국 GDP(국내총생산) 발표", True),
+    # [GREEN 참고용: 정상 매매 유지 (50점 미만)]
+    (("unemployment rate", "실업률"), 20, "실업률 발표", True),
+    (("ism", "구매관리자지수", "pmi"), 15, "구매관리자지수(PMI/ISM) 발표", True),
+    (("gtc",), 10, "엔비디아 GTC (변동성 참고)", False),
 ]
 
 
 def evaluate_overnight_event_risk(ref_datetime: datetime = None) -> dict:
     """
-    오늘 밤(15:30 ~ 익일 09:00) 또는 주말(금~월)에 터질 거시경제 폭탄 일정 평가
+    오늘 밤(당일 15:30 ~ 익일 10:30 KST) 또는 주말(금~월)에 터질 거시경제 폭탄 일정 평가
     - Returns:
       - score: 0~100 (높을수록 초고위험)
       - level: GREEN (<50), YELLOW (50~79), RED (>=80)
       - recommendation: 'NORMAL_BETTING', 'HALF_BETTING', 'BLOCK_BETTING'
-      - events: 감지된 지표 목록
+      - detected_events: 감지된 지표 목록
     """
     if ref_datetime is None:
         ref_datetime = get_current_kst()
@@ -320,17 +326,18 @@ def evaluate_overnight_event_risk(ref_datetime: datetime = None) -> dict:
     except Exception as e:
         logger.warning(f"경제지표 수집 실패 (로컬 대체 모드): {e}")
 
-    # 탐색 기간 결정
+    # 정밀 오버나잇 시간 윈도우 결정 (KST 기준)
+    window_start = datetime(cur_date.year, cur_date.month, cur_date.day, 15, 30, tzinfo=KST)
     if is_friday:
-        # 금요일 밤부터 월요일 오전까지 (3일간)
-        target_start = cur_date
-        target_end = cur_date + timedelta(days=3)
+        # 금요일 15:30 ~ 월요일 10:30 (주말 65시간 + 월요일 오전)
+        end_d = cur_date + timedelta(days=3)
     else:
-        # 평일: 오늘 밤부터 내일 아침까지
-        target_start = cur_date
-        target_end = cur_date + timedelta(days=1)
+        # 평일(월~목): 오늘 15:30 ~ 익일 10:30 (미국 야간 지표 + 익일 오전 10:00 금통위 포함)
+        end_d = cur_date + timedelta(days=1)
+    window_end = datetime(end_d.year, end_d.month, end_d.day, 10, 30, tzinfo=KST)
 
     detected_shocks = []
+    seen_desc_keys = set()
     total_risk_score = 0
 
     for ev in macro_events:
@@ -338,31 +345,84 @@ def evaluate_overnight_event_risk(ref_datetime: datetime = None) -> dict:
             ev_date = ev.get("parsed_date")
             if not ev_date and ev.get("date"):
                 ev_date = datetime.strptime(str(ev["date"]), "%Y-%m-%d").date()
-
-            if not ev_date or not (target_start <= ev_date <= target_end):
+            if not ev_date:
                 continue
 
-            ev_name = ev.get("event", "")
-            # 발표 완료된 것은 리스크에서 제외 (단, 오늘 밤 미발표 건만 체크)
+            # 발표 완료된 것은 리스크에서 제외
             if ev.get("is_release"):
                 continue
 
-            for kw, weight, desc in HIGH_IMPACT_MACRO_KEYWORDS:
-                if kw.lower() in ev_name.lower():
+            # 발표 시각(parsed_time)이 있으면 정밀 시간 윈도우(15:30 ~ 익일 10:30) 비교
+            ev_time = ev.get("parsed_time")
+            if ev_time is not None:
+                ev_dt = datetime(ev_date.year, ev_date.month, ev_date.day, ev_time.hour, ev_time.minute, tzinfo=KST)
+                if not (window_start <= ev_dt <= window_end):
+                    continue
+            else:
+                if not (cur_date <= ev_date <= end_d):
+                    continue
+
+            ev_name = str(ev.get("event", ""))
+            ev_name_low = ev_name.lower()
+            country = str(ev.get("country", ""))
+            is_us = any(c in country.lower() for c in ("미국", "us", "usd", "usa"))
+
+            for kw_tuple, weight, desc, us_only in HIGH_IMPACT_MACRO_KEYWORDS:
+                if us_only and country and not is_us:
+                    continue
+                if any(kw in ev_name_low for kw in kw_tuple):
+                    # 동일 유형 지표(예: Core PCE MoM + YoY 동시 발표) 중복 가산 방지
+                    dedup_key = f"{ev_date}:{desc}"
                     time_str = ev.get("time", "")
-                    country = ev.get("country", "")
                     detected_shocks.append({
                         "event": ev_name,
                         "desc": desc,
                         "date": ev_date.strftime("%Y-%m-%d"),
                         "time": time_str,
                         "country": country,
-                        "weight": weight
+                        "weight": weight if dedup_key not in seen_desc_keys else 0
                     })
-                    total_risk_score += weight
+                    if dedup_key not in seen_desc_keys:
+                        seen_desc_keys.add(dedup_key)
+                        total_risk_score += weight
                     break
         except Exception:
             continue
+
+    # 마스터 캘린더(한국은행 금통위 D-0/D-1) 및 국내 네 마녀의 날(D-0) 연동
+    try:
+        next_day = cur_date + timedelta(days=1)
+        for me in load_global_master_events(cur_date):
+            if me.get("category") == "BOK_RATE" and me.get("date") == next_day.strftime("%Y-%m-%d"):
+                dedup_key = f"{next_day}:한국은행 금통위 기준금리 결정"
+                if dedup_key not in seen_desc_keys:
+                    seen_desc_keys.add(dedup_key)
+                    detected_shocks.append({
+                        "event": me.get("title", "한국은행 금통위"),
+                        "desc": "한국은행 금통위 기준금리 결정",
+                        "date": me["date"],
+                        "time": "10:00",
+                        "country": "한국",
+                        "weight": 50
+                    })
+                    total_risk_score += 50
+        deriv = get_next_derivatives_expiry(cur_date)
+        next_quad = deriv.get("next_quadruple") if isinstance(deriv, dict) else None
+        if next_quad and next_quad.get("d_day") in (0, 1) and next_quad.get("date") == next_day.strftime("%Y-%m-%d"):
+            dedup_key = f"{next_day}:네마녀의날"
+            if dedup_key not in seen_desc_keys:
+                seen_desc_keys.add(dedup_key)
+                detected_shocks.append({
+                    "event": next_quad.get("name", "국내 선물·옵션 동시만기일"),
+                    "desc": "국내 네 마녀의 날 (선물·옵션 동시만기)",
+                    "date": next_quad["date"],
+                    "time": "09:00",
+                    "country": "한국",
+                    "weight": 50
+                })
+                total_risk_score += 50
+    except Exception as _me:
+        logger.debug(f"마스터/파생 일정 연동 예외: {_me}")
 
     # 금요일 주말 페널티: 주말 65시간 미대응 리스크 가산점 (+20)
     if is_friday:

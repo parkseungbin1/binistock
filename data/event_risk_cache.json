@@ -1,12 +1,29 @@
 {
-  "updated_at": "2026-11-23 15:11:54",
+  "updated_at": "2026-11-23 15:27:40",
   "overnight_risk": {
-    "score": 0,
+    "score": 15,
     "level": "GREEN",
     "recommendation": "NORMAL_BETTING",
     "status_message": "오늘 밤 위험 경제지표 없음 ➔ 정상 오버나잇 베팅 허용",
     "is_friday": false,
-    "detected_events": []
+    "detected_events": [
+      {
+        "event": "제조업 구매관리자지수 (PMI 속보치) (Flash Manufacturing PMI)",
+        "desc": "구매관리자지수(PMI/ISM) 발표",
+        "date": "2026-11-23",
+        "time": "23:45",
+        "country": "미국",
+        "weight": 15
+      },
+      {
+        "event": "서비스업 구매관리자지수 (PMI 속보치) (Flash Services PMI)",
+        "desc": "구매관리자지수(PMI/ISM) 발표",
+        "date": "2026-11-23",
+        "time": "23:45",
+        "country": "미국",
+        "weight": 0
+      }
+    ]
   },
   "derivatives": {
     "next_kr": {
@@ -156,12 +173,12 @@
       "tag": "🔥 시총 5.13% 소각 예정 (D-7)"
     },
     {
-      "corp_name": "아바코",
-      "ratio_pct": 4.69,
-      "burn_date": "2026-11-30",
-      "d_day": 7,
+      "corp_name": "동아지질",
+      "ratio_pct": 3.35,
+      "burn_date": "2026-11-23",
+      "d_day": 0,
       "boost_score": 4,
-      "tag": "🔥 시총 4.69% 소각 예정 (D-7)"
+      "tag": "🔥 시총 3.35% 소각 예정 (D-0)"
     },
     {
       "corp_name": "에스켐",
@@ -291,10 +308,10 @@
       "tag": "🔥 시총 5.13% 소각 예정 (D-7)",
       "reason": "자사주 시총 5.13% 영구소각 호재"
     },
-    "아바코": {
+    "동아지질": {
       "boost_score": 4,
-      "tag": "🔥 시총 4.69% 소각 예정 (D-7)",
-      "reason": "자사주 시총 4.69% 영구소각 호재"
+      "tag": "🔥 시총 3.35% 소각 예정 (D-0)",
+      "reason": "자사주 시총 3.35% 영구소각 호재"
     },
     "에스켐": {
       "boost_score": 0,
