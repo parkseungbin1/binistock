@@ -35,7 +35,7 @@ def run_py(script_name, args=None, fatal=True):
 def main():
     parser = argparse.ArgumentParser(description="BiniStock 스마트 디스패처")
     parser.add_argument('--action', default='auto',
-                        choices=['auto', 'digest_0700', 'morning_735', 'disclosure_0810',
+                        choices=['', 'auto', 'digest_0700', 'morning_735', 'disclosure_0810',
                                  'morning_835', 'midday_1300', 'preclosing_1400', 'closing_1510', 'close_1535', 'night_1940'],
                         help="수동 액션 강제 지정 (기본값: auto - 현재 시각 기준 자동 판별)")
     args = parser.parse_args()

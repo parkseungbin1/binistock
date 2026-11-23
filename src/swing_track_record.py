@@ -151,7 +151,7 @@ def record_swing_picks(picks, risk_score=None, is_blocked=False):
             'highest_price': entry_p,
             'lowest_price': entry_p,
             'max_return_pct': 0.0,
-            'status': '🛡️ 리스크 차단 (사후추적)' if is_blocked else ('⏸️ 90점 미달 관망 (사후추적)' if is_sim_only else '진행중'),
+            'status': '🛡️ 리스크 차단 (사후추적)' if is_blocked else ('⏸️ 85점 미달 관망 (사후추적)' if is_sim_only else '진행중'),
             'is_blocked_sim': is_sim_only,
             'completed': False,
             'holding_days': 0

@@ -981,15 +981,19 @@ def _resolve_ai_risk_score(market_context=None) -> int:
 
 
 _RECOMMENDATIONS_CACHE = None
+_RECOMMENDATIONS_CACHE_HAS_CTX = False
 
 
 def get_recommendations(dart_disclosures=None, market_context=None, force_refresh=False):
     """
     국내 KRX 전 종목을 실시간 스캔하여 고승률 4대 필터를 통과한 종목 도출 (프로세스 내 캐시 적용으로 초고속 실행)
     """
-    global _RECOMMENDATIONS_CACHE
+    global _RECOMMENDATIONS_CACHE, _RECOMMENDATIONS_CACHE_HAS_CTX
+    has_ctx = market_context is not None
     if _RECOMMENDATIONS_CACHE is not None and not force_refresh:
-        return _RECOMMENDATIONS_CACHE
+        # market_context=None으로 선행 캐싱된 뒤 실제 market_context가 전달되면 재계산하여 캐시 오염 방지
+        if not (has_ctx and not _RECOMMENDATIONS_CACHE_HAS_CTX):
+            return _RECOMMENDATIONS_CACHE
 
     import FinanceDataReader as fdr
 
@@ -1612,7 +1616,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
                     picked = fut.result()
                     if picked:
                         all_swing_evaluated.append(picked)
-                        if picked.get('score', 0) >= 90:
+                        if picked.get('score', 0) >= 85:
                             swing_picks.append(picked)
                 except Exception as e:
                     logger.debug(f"스윙 스레드 결과 처리 예외: {e}")
@@ -2185,6 +2189,7 @@ def get_recommendations(dart_disclosures=None, market_context=None, force_refres
         'event_intelligence': event_intel,
     }
     _RECOMMENDATIONS_CACHE = res
+    _RECOMMENDATIONS_CACHE_HAS_CTX = has_ctx
     return res
 
 

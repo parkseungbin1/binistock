@@ -59,12 +59,20 @@ def generate_html():
     guide_1510 = get_market_score_message('closing')
     guide_1940 = get_market_score_message('night')
 
-    # Python 3.12 미만 호환: f-string 표현식 내부 백슬래시 금지 → 미리 이스케이프
-    bt, bt_esc = '`', '\\`'
-    g0740_js = guide_0740.replace(bt, bt_esc)
-    g0840_js = guide_0840.replace(bt, bt_esc)
-    g1510_js = guide_1510.replace(bt, bt_esc)
-    g1940_js = guide_1940.replace(bt, bt_esc)
+    # Python 3.12 미만 호환 + JS 템플릿 리터럴 안전 이스케이프 (\, `, ${, </script>)
+    def _esc_js_tpl(txt: str) -> str:
+        return (
+            str(txt)
+            .replace('\\', '\\\\')
+            .replace('`', '\\`')
+            .replace('${', '\\${')
+            .replace('</script>', '<\\/script>')
+        )
+
+    g0740_js = _esc_js_tpl(guide_0740)
+    g0840_js = _esc_js_tpl(guide_0840)
+    g1510_js = _esc_js_tpl(guide_1510)
+    g1940_js = _esc_js_tpl(guide_1940)
 
     # 2-1. AI 실전 추천 종목 수집 (종가베팅 & 2~5일 스윙)
     # 2-0. 실시간 복합 AI 리스크 사전 계산
@@ -3960,7 +3968,7 @@ def generate_html():
         function filterByMarcap(type, btn) {{
             document.querySelectorAll('.mfilter-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
-            document.querySelectorAll('.rec-card').forEach(card => {{
+            document.querySelectorAll('.rec-card:not(.pb-card)').forEach(card => {{
                 const marcap = parseFloat(card.getAttribute('data-marcap') || '0');
                 const eok = marcap / 1e8;
                 if (type === 'all') {{
@@ -4124,11 +4132,15 @@ def generate_html():
             document.querySelectorAll('.rec-kelly-order-box').forEach(box => {{
                 const price = parseFloat(box.getAttribute('data-price') || '0');
                 if (price > 0) {{
-                    const shares = Math.max(1, Math.floor(perStockWon / price));
-                    const actualAmt = shares * price;
-                    const expProfit = Math.round(actualAmt * 0.03);
-                    const expLoss = Math.round(actualAmt * 0.02);
-                    box.innerHTML = `💰 <b>시드 연동 권장 주문</b>: <b>${{shares.toLocaleString()}}주</b> (${{actualAmt.toLocaleString()}}원) | +3% 익절 <b>+${{expProfit.toLocaleString()}}원</b> / -2% 손절 <b>-${{expLoss.toLocaleString()}}원</b>`;
+                    if (perStockWon <= 0) {{
+                        box.innerHTML = `🛡️ <b>시드 연동 권장 주문</b>: <b>0주 (신규 매수 차단 · 현금 100% 보존)</b>`;
+                    }} else {{
+                        const shares = Math.max(1, Math.floor(perStockWon / price));
+                        const actualAmt = shares * price;
+                        const expProfit = Math.round(actualAmt * 0.03);
+                        const expLoss = Math.round(actualAmt * 0.02);
+                        box.innerHTML = `💰 <b>시드 연동 권장 주문</b>: <b>${{shares.toLocaleString()}}주</b> (${{actualAmt.toLocaleString()}}원) | +3% 익절 <b>+${{expProfit.toLocaleString()}}원</b> / -2% 손절 <b>-${{expLoss.toLocaleString()}}원</b>`;
+                    }}
                 }}
             }});
 
@@ -4136,11 +4148,15 @@ def generate_html():
             document.querySelectorAll('.sim-kelly-cell').forEach(cell => {{
                 const price = parseFloat(cell.getAttribute('data-price') || '0');
                 if (price > 0) {{
-                    const shares = Math.max(1, Math.floor(perStockWon / price));
-                    const actualAmt = shares * price;
-                    const p5 = Math.round(actualAmt * 0.05);
-                    const l2 = Math.round(actualAmt * 0.02);
-                    cell.innerHTML = `<span style="color:#fbbf24; font-weight:700;">${{shares.toLocaleString()}}주</span> <span style="font-size:0.75rem; color:#9ca3af;">(+5%시 <b style="color:#34d399;">+${{p5.toLocaleString()}}원</b> / 손절 <b style="color:#f87171;">-${{l2.toLocaleString()}}원</b>)</span>`;
+                    if (perStockWon <= 0) {{
+                        cell.innerHTML = `<span style="color:#9ca3af; font-weight:700;">0주 (차단)</span>`;
+                    }} else {{
+                        const shares = Math.max(1, Math.floor(perStockWon / price));
+                        const actualAmt = shares * price;
+                        const p5 = Math.round(actualAmt * 0.05);
+                        const l2 = Math.round(actualAmt * 0.02);
+                        cell.innerHTML = `<span style="color:#fbbf24; font-weight:700;">${{shares.toLocaleString()}}주</span> <span style="font-size:0.75rem; color:#9ca3af;">(+5%시 <b style="color:#34d399;">+${{p5.toLocaleString()}}원</b> / 손절 <b style="color:#f87171;">-${{l2.toLocaleString()}}원</b>)</span>`;
+                    }}
                 }}
             }});
         }}

@@ -175,14 +175,14 @@ def compute_risk_score(context: dict) -> int:
 
 
 def get_risk_assessment(score: int) -> dict:
-    """점수별 상세 진단 및 행동 지침 반환"""
-    if score < 35:
+    """4단계 시황 레짐 기반 상세 진단 및 행동 지침 반환"""
+    if score <= 40:
         return {
             'score': score,
             'grade': '안정 (저위험)',
             'color': '#10b981',
             'badge_class': 'risk-good',
-            'desc': '시장 위험도 낮음: 공격적 매매 및 종가베팅 비중 100% 정상 운용 가능 (상승 우세 장세)'
+            'desc': '강세·안정장(≤40점): 정상 비중 운용 및 AI 컷오프 자동 완화(종가 85점↑ · 스윙 82점↑)'
         }
     elif score <= 60:
         return {
@@ -190,13 +190,21 @@ def get_risk_assessment(score: int) -> dict:
             'grade': '주의 (중위험)',
             'color': '#f59e0b',
             'badge_class': 'risk-caution',
-            'desc': '단기 변동성 주의 (60점 이하 진입 허용): 리스크 점수 비례 비중 축소 및 기계적 익절 원칙 엄격 준수'
+            'desc': '단기 변동성 주의(41~60점): 표준 기준(종가 90점↑ · 스윙 85점↑) 및 기계적 익절 준수'
+        }
+    elif score <= 70:
+        return {
+            'score': score,
+            'grade': '경고 (역추세 예외)',
+            'color': '#f97316',
+            'badge_class': 'risk-danger',
+            'desc': '약세장 경계(61~70점): 스윙 차단 · 종가베팅은 AI 95점↑ 최상위 1종목 소액(30%) 예외만 허용'
         }
     else:
         return {
             'score': score,
-            'grade': '경고 (고위험)',
+            'grade': '위험 (패닉 차단)',
             'color': '#ef4444',
             'badge_class': 'risk-danger',
-            'desc': '시장 하방 압력 경계 (60점 초과): 종가·스윙 전 전략 신규 매수 전면 차단 및 현금 100% 안전 보존'
+            'desc': '시장 패닉 경계(70점 초과): 종가·스윙 전 전략 신규 매수 전면 차단 및 현금 100% 보존'
         }

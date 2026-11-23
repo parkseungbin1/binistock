@@ -389,38 +389,54 @@ def evaluate_overnight_event_risk(ref_datetime: datetime = None) -> dict:
         except Exception:
             continue
 
-    # 마스터 캘린더(한국은행 금통위 D-0/D-1) 및 국내 네 마녀의 날(D-0) 연동
+    # 마스터 캘린더(한국은행 금통위 오버나잇 윈도우) 및 국내 네 마녀의 날(D-0/D-1) 연동
     try:
         next_day = cur_date + timedelta(days=1)
+        window_end_date = window_end.date()
         for me in load_global_master_events(cur_date):
-            if me.get("category") == "BOK_RATE" and me.get("date") == next_day.strftime("%Y-%m-%d"):
-                dedup_key = f"{next_day}:한국은행 금통위 기준금리 결정"
+            if me.get("category") == "BOK_RATE":
+                me_date_str = me.get("date", "")
+                try:
+                    me_dt = datetime.strptime(f"{me_date_str} 10:00", "%Y-%m-%d %H:%M").replace(tzinfo=KST)
+                except Exception:
+                    continue
+                if window_start <= me_dt <= window_end:
+                    dedup_key = f"{me_date_str}:한국은행 금통위 기준금리 결정"
+                    if dedup_key not in seen_desc_keys:
+                        seen_desc_keys.add(dedup_key)
+                        detected_shocks.append({
+                            "event": me.get("title", "한국은행 금통위"),
+                            "desc": "한국은행 금통위 기준금리 결정",
+                            "date": me_date_str,
+                            "time": "10:00",
+                            "country": "한국",
+                            "weight": 50
+                        })
+                        total_risk_score += 50
+        deriv = get_next_derivatives_expiry(cur_date)
+        next_quad = deriv.get("next_quadruple") if isinstance(deriv, dict) else None
+        if next_quad:
+            q_dday = next_quad.get("d_day")
+            q_date = next_quad.get("date", "")
+            # D-1(익일 또는 금→월 만기) 또는 D-0(당일 장중 15:30 이전)일 때 경계
+            is_quad_target = (
+                (q_date == next_day.strftime("%Y-%m-%d"))
+                or (is_friday and q_date == window_end_date.strftime("%Y-%m-%d"))
+                or (q_dday == 0 and q_date == cur_date.strftime("%Y-%m-%d") and ref_datetime.hour < 15)
+            )
+            if is_quad_target:
+                dedup_key = f"{q_date}:네마녀의날"
                 if dedup_key not in seen_desc_keys:
                     seen_desc_keys.add(dedup_key)
                     detected_shocks.append({
-                        "event": me.get("title", "한국은행 금통위"),
-                        "desc": "한국은행 금통위 기준금리 결정",
-                        "date": me["date"],
-                        "time": "10:00",
+                        "event": next_quad.get("name", "국내 선물·옵션 동시만기일"),
+                        "desc": "국내 네 마녀의 날 (선물·옵션 동시만기)",
+                        "date": q_date,
+                        "time": "09:00",
                         "country": "한국",
                         "weight": 50
                     })
                     total_risk_score += 50
-        deriv = get_next_derivatives_expiry(cur_date)
-        next_quad = deriv.get("next_quadruple") if isinstance(deriv, dict) else None
-        if next_quad and next_quad.get("d_day") in (0, 1) and next_quad.get("date") == next_day.strftime("%Y-%m-%d"):
-            dedup_key = f"{next_day}:네마녀의날"
-            if dedup_key not in seen_desc_keys:
-                seen_desc_keys.add(dedup_key)
-                detected_shocks.append({
-                    "event": next_quad.get("name", "국내 선물·옵션 동시만기일"),
-                    "desc": "국내 네 마녀의 날 (선물·옵션 동시만기)",
-                    "date": next_quad["date"],
-                    "time": "09:00",
-                    "country": "한국",
-                    "weight": 50
-                })
-                total_risk_score += 50
     except Exception as _me:
         logger.debug(f"마스터/파생 일정 연동 예외: {_me}")
 
@@ -504,10 +520,14 @@ def build_and_save_event_intelligence(ref_datetime: datetime = None) -> dict:
     }
 
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    cache_path = os.path.join(base_dir, "data", "event_risk_cache.json")
+    data_dir = os.path.join(base_dir, "data")
+    cache_path = os.path.join(data_dir, "event_risk_cache.json")
+    tmp_path = f"{cache_path}.tmp"
     try:
-        with open(cache_path, "w", encoding="utf-8") as f:
+        os.makedirs(data_dir, exist_ok=True)
+        with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(intelligence, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, cache_path)
         logger.info(f"이벤트 인텔리전스 캐시 저장 완료: {cache_path}")
     except Exception as e:
         logger.error(f"이벤트 캐시 저장 실패: {e}")

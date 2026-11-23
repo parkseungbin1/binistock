@@ -250,15 +250,13 @@ def evaluate_latest_performance():
             # 추천일 '다음 거래일' 시초가 사용 (마지막 행이 아닌)
             nxt = df[df.index.strftime('%Y-%m-%d') > target['date']]
             if nxt.empty:
-                return None
-
-            open_p = float(nxt['Open'].iloc[0])
-            gap_pct = ((open_p - close_p) / close_p) * 100
+                continue
 
             open_p = float(nxt['Open'].iloc[0])
             high_p = float(nxt['High'].iloc[0])
             if target['date'] in df.index:
-                close_p = int(df.loc[target['date'], 'Close'])
+                close_raw = df.loc[target['date'], 'Close']
+                close_p = int(close_raw.iloc[-1] if hasattr(close_raw, 'iloc') else close_raw)
                 p['close_price'] = close_p
                 p['price'] = close_p
                 p['target_1'] = int(round(close_p * 1.03))

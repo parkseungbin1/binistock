@@ -429,6 +429,12 @@ def get_closing_betting_guide():
 
     breadth_val = rec.get('breadth_pct', 50.0) if isinstance(rec, dict) else 50.0
     ai_risk_val, _, ai_risk_line = compute_unified_ai_risk(breadth_pct=breadth_val)
+    if ai_risk_val is not None and ai_risk_val > 70:
+        core_action = f"🔴 AI 리스크 {ai_risk_val}점(70점 초과) — 자동매매 전면 차단 (현금 100% 보존)"
+        betting_label = "[AI 리스크 패닉 차단 | 현금 100%]"
+    elif ai_risk_val is not None and ai_risk_val > 60:
+        core_action = f"🟠 AI 리스크 {ai_risk_val}점(61~70점) — 역추세 S+(95점↑) 소액 예외 외 관망"
+        betting_label = "[약세장 경계 | 역추세 95점↑ 소액 예외]"
 
     now_kst = datetime.now(KST)
     ko_wd = ['월', '화', '수', '목', '금', '토', '일'][now_kst.weekday()]
@@ -582,6 +588,12 @@ def get_evening_betting_guide():
 
     breadth_val = rec.get('breadth_pct', 50.0) if isinstance(rec, dict) else 50.0
     ai_risk_val, _, ai_risk_line = compute_unified_ai_risk(breadth_pct=breadth_val)
+    if ai_risk_val is not None and ai_risk_val > 70:
+        core_action = f"🔴 AI 리스크 {ai_risk_val}점(70점 초과) — 자동매매 전면 차단 (현금 100% 보존)"
+        betting_label = "[AI 리스크 패닉 차단 | 현금 100%]"
+    elif ai_risk_val is not None and ai_risk_val > 60:
+        core_action = f"🟠 AI 리스크 {ai_risk_val}점(61~70점) — 역추세 S+(95점↑) 소액 예외 외 관망"
+        betting_label = "[약세장 경계 | 역추세 95점↑ 소액 예외]"
 
     now_kst = datetime.now(KST)
     ko_wd = ['월', '화', '수', '목', '금', '토', '일'][now_kst.weekday()]
