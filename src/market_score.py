@@ -134,6 +134,84 @@ def make_gauge_bar(score, total_blocks=10):
     return '■' * filled + '░' * (total_blocks - filled)
 
 
+def compute_unified_ai_risk(breadth_pct: float = 50.0):
+    """
+    웹 대시보드(generate_web.py) 및 키움 자동매매 봇과 100% 동일한 9대 팩터 기반
+    AI 시황 리스크 점수(0~100, 낮을수록 안전)와 텔레그램 표시용 문자열을 반환합니다.
+    """
+    try:
+        try:
+            from src.risk_score import compute_risk_score, get_risk_assessment, fetch_index_intraday_pullback
+        except ImportError:
+            from risk_score import compute_risk_score, get_risk_assessment, fetch_index_intraday_pullback
+
+        _, fut_ratio = fetch_nasdaq_futures()
+        _, sox_ratio = fetch_naver_index('.SOX')
+        _, kp_ratio, _, _, kp_for_num, kp_inst_num = fetch_kr_market('KOSPI')
+        _, kd_ratio, _, _, kd_for_num, kd_inst_num = fetch_kr_market('KOSDAQ')
+        fx_close, fx_ratio, _ = fetch_usdkrw()
+        cnn_score, _ = fetch_cnn_fear_greed()
+        vix_close, _ = fetch_vix()
+        _, us10y_diff = fetch_us10y()
+
+        vix_val = float(str(vix_close).replace(',', '')) if vix_close else 20.0
+        kp_pb = fetch_index_intraday_pullback("KOSPI")
+        kd_pb = fetch_index_intraday_pullback("KOSDAQ")
+
+        risk_ctx = {
+            'fut_ratio': fut_ratio if fut_ratio is not None else 0.0,
+            'sox_ratio': sox_ratio if sox_ratio is not None else 0.0,
+            'kp_ratio': kp_ratio if kp_ratio is not None else 0.0,
+            'kd_ratio': kd_ratio if kd_ratio is not None else 0.0,
+            'kp_for_num': kp_for_num if kp_for_num is not None else 0,
+            'kp_inst_num': kp_inst_num if kp_inst_num is not None else 0,
+            'kd_for_num': kd_for_num if kd_for_num is not None else 0,
+            'kd_inst_num': kd_inst_num if kd_inst_num is not None else 0,
+            'kp_pullback_pctp': kp_pb,
+            'kd_pullback_pctp': kd_pb,
+            'breadth_pct': float(breadth_pct) if breadth_pct is not None else 50.0,
+            'fx_ratio': fx_ratio if fx_ratio is not None else 0.0,
+            'fx_close': fx_close if fx_close else 1350.0,
+            'cnn_score': cnn_score if cnn_score is not None else 50.0,
+            'vix': vix_val,
+            'us10y': us10y_diff if us10y_diff is not None else 0.0,
+        }
+        ai_risk_val = compute_risk_score(risk_ctx)
+        assess = get_risk_assessment(ai_risk_val)
+        if ai_risk_val <= 60:
+            badge = f"🟢 {assess['grade']} · 60점 이하 자동매매 허용"
+        elif ai_risk_val <= 70:
+            badge = f"🟡 {assess['grade']} · 61~70점 역추세 S+(95점↑) 소액 예외만 허용"
+        else:
+            badge = f"🚨 {assess['grade']} · 70점 초과 자동매매 전면 차단"
+        line = f"🛡️ <b>AI 시황 리스크 (대시보드·봇 동일)</b>: <b>{ai_risk_val}점</b> ({badge})\n"
+        return ai_risk_val, assess, line
+    except Exception as e:
+        logger.warning(f"통합 AI 시황 리스크 계산 실패: {e}")
+        return None, None, ""
+
+
+def _format_ai_score_tag(stock: dict, min_score: int = 90, ai_risk_val=None) -> str:
+    """텔레그램 추천 후보 종목 옆에 AI 종목 점수와 봇 진입 기준 통과 여부를 표시합니다."""
+    raw_sc = stock.get('score')
+    if raw_sc is None:
+        return ""
+    try:
+        sc = int(round(float(raw_sc)))
+    except Exception:
+        return ""
+
+    if ai_risk_val is not None and ai_risk_val > 70:
+        status = "시황차단·참고후보"
+    elif ai_risk_val is not None and ai_risk_val > 60:
+        status = "역추세95↑예외" if sc >= 95 else "시황주의·참고후보"
+    elif sc >= min_score:
+        status = f"{min_score}점↑ 통과"
+    else:
+        status = f"{min_score}점 미달·참고후보"
+    return f" | 🎯 <b>AI {sc}점</b> ({status})"
+
+
 # ==========================================================
 # 1 & 2. [아침 07:40 / 08:40] 시초가 매도 타이밍 & 대응 가이드
 # ==========================================================
@@ -249,10 +327,10 @@ def get_morning_sell_guide(time_label="07:40", is_nxt=True):
                 nxt = fetch_nxt_over_market_info(p['code'])
                 if nxt and nxt.get('price'):
                     r_val = nxt.get('ratio', 0.0)
-                    act = "🔥NXT 50% 선제익절 권장" if r_val >= 2.5 else ("🟢09:00 정규장 슈팅 대기" if r_val >= 0 else "⚖️전일종가 지지 확인")
+                    act = "🔥보유 시 NXT 50% 분할익절 참고" if r_val >= 2.5 else ("🟢보유 시 09:00 정규장 흐름 관찰" if r_val >= 0 else "⚖️전일종가 지지 여부 확인")
                     nxt_lines.append(f"• <b>{p['name']}</b>: {nxt['session']} <b>{nxt['price']:,}원</b> ({r_val:+.2f}%) → <i>{act}</i>")
             if nxt_lines:
-                msg += "⚡ <b>[종가베팅 종목 NXT 실시간 시세 & 시차 대응]</b>\n" + "\n".join(nxt_lines) + "\n\n"
+                msg += "⚡ <b>[전일 AI 추적 후보 NXT 실시간 시세 (보유 시 대응 참고)]</b>\n" + "\n".join(nxt_lines) + "\n\n"
     except Exception as e:
         logger.debug(f"NXT 시세 브리핑 생략: {e}")
 
@@ -332,26 +410,15 @@ def get_closing_betting_guide():
     vix_str = f"🌪️ VIX: <b>{vix_close}</b>" if vix_close else ""
     us10y_str = f"📈 美10년물: <b>{us10y_price:.2f}%</b>" if us10y_price else ""
 
-    ai_risk_line = ""
+    rec = {}
     try:
-        from src.risk_score import compute_risk_score
-        vix_val_ms = float(str(vix_close).replace(',', '')) if vix_close else 20.0
-        cnn_s_ms, _ = fetch_cnn_fear_greed()
-        ai_risk_val = compute_risk_score({
-            'fut_ratio': fut_ratio,
-            'kp_ratio': kp_ratio,
-            'kd_ratio': kd_ratio,
-            'kp_for_num': kp_for_num,
-            'kp_inst_num': kp_inst_num,
-            'kd_for_num': kd_for_num,
-            'kd_inst_num': kd_inst_num,
-            'cnn_score': cnn_s_ms if cnn_s_ms is not None else 50.0,
-            'vix': vix_val_ms,
-        })
-        risk_badge = "🟢 65점 이하 매수허용" if ai_risk_val <= 65 else "🚨 65점 초과 매수차단"
-        ai_risk_line = f"🛡️ <b>AI 시황 리스크(매매봇 기준)</b>: <b>{ai_risk_val}점</b> ({risk_badge})\n"
-    except Exception:
-        ai_risk_line = ""
+        from src.recommender import get_recommendations, format_marcap
+        rec = get_recommendations() or {}
+    except Exception as e:
+        logger.warning(f"종가베팅 추천 종목 조회 실패: {e}")
+
+    breadth_val = rec.get('breadth_pct', 50.0) if isinstance(rec, dict) else 50.0
+    ai_risk_val, _, ai_risk_line = compute_unified_ai_risk(breadth_pct=breadth_val)
 
     now_kst = datetime.now(KST)
     ko_wd = ['월', '화', '수', '목', '금', '토', '일'][now_kst.weekday()]
@@ -359,7 +426,7 @@ def get_closing_betting_guide():
     msg = f"🎯 <b>[15:30 정규장 1차 종가베팅 가이드]</b> ({date_str} 15:10 알림)\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"🎯 <b>핵심 전략</b>: <b>{core_action}</b>\n"
-    msg += f"📊 <b>텔레그램 시황 점수</b>: <b>{score}점</b> [{gauge}] | <b>{betting_label}</b>\n"
+    msg += f"📊 <b>시황 강도 점수 (높을수록 강세)</b>: <b>{score}점</b> [{gauge}] | <b>{betting_label}</b>\n"
     msg += ai_risk_line
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
@@ -374,11 +441,10 @@ def get_closing_betting_guide():
     msg += f"\n💡 <b>정규장 종가베팅 전략</b>\n{guide}\n"
 
     try:
-        from src.recommender import get_recommendations, format_marcap
-        rec = get_recommendations()
-        closing_picks = rec.get('closing', [])
+        from src.recommender import format_marcap
+        closing_picks = rec.get('closing', []) if isinstance(rec, dict) else []
         if closing_picks:
-            msg += "\n🔥 <b>오늘의 AI 종가베팅 주도주 TOP 3 (지지·저항 돌파)</b>\n"
+            msg += "\n🔥 <b>오늘의 AI 종가베팅 후보 TOP 3 (참고용 · 실매수 아님)</b>\n"
             for idx, s in enumerate(closing_picks[:3], 1):
                 chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
                 sec = s.get('sector', '주도주')
@@ -390,8 +456,9 @@ def get_closing_betting_guide():
                 next_res = s.get('next_resistance')
                 marcap_str = s.get('marcap_str') or (format_marcap(s.get('marcap')) if s.get('marcap') else '')
                 marcap_part = f" | 🏢 시총: <b>{marcap_str}</b>" if marcap_str else ""
+                ai_tag = _format_ai_score_tag(s, min_score=90, ai_risk_val=ai_risk_val)
 
-                msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code>\n"
+                msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code>{ai_tag}\n"
                 msg += f"   ├ 💰 거래대금: <b>{s['amount_eok']:,}억</b>{marcap_part} (종가: {s['price']:,}원)\n"
                 if sr_status:
                     msg += f"   ├ 📈 <b>차트분석</b>: {sr_status}\n"
@@ -400,12 +467,12 @@ def get_closing_betting_guide():
                 if cat:
                     src_tag = f" ({cat_src})" if cat_src else ""
                     msg += f"   ├ 📰 <b>핵심재료</b>: <a href=\"{cat_url}\"><i>{cat}</i>{src_tag} ↗</a>\n"
-                msg += f"   ├ 🎯 <b>목표가</b>: <b>{s['target_1']:,}원</b> (+3%) | 손절: {s['stop_loss']:,}원 (-2%)\n"
+                msg += f"   ├ 🎯 <b>참고 목표가</b>: <b>{s['target_1']:,}원</b> (+3%) | 참고 손절: {s['stop_loss']:,}원 (-2%)\n"
                 msg += f"   └ 📱 <a href=\"{chart_url}\">네이버 증권 차트/호가 바로보기 ↗</a>\n\n"
 
-        swing_picks = rec.get('swing', [])
+        swing_picks = rec.get('swing', []) if isinstance(rec, dict) else []
         if swing_picks:
-            msg += "\n🚀 <b>오늘의 2~5일 스윙 추천주 TOP 3 (20일선 눌림목 반등)</b>\n"
+            msg += "\n🚀 <b>오늘의 2~5일 스윙 후보 TOP 3 (참고용 · 실매수 아님)</b>\n"
             for idx, s in enumerate(swing_picks[:3], 1):
                 chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
                 sec = s.get('sector', '우량스윙')
@@ -413,18 +480,19 @@ def get_closing_betting_guide():
                 marcap_part = f" | 🏢 시총: <b>{marcap_str}</b>" if marcap_str else ""
                 hold_period = s.get('holding_period', '2~5거래일')
                 target_2_str = f" | 🚀 <b>2차 목표</b>: <b>{s['target_2']:,}원</b> (+9%)" if s.get('target_2') else ""
+                ai_tag = _format_ai_score_tag(s, min_score=85, ai_risk_val=ai_risk_val)
 
-                msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code>\n"
+                msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code>{ai_tag}\n"
                 msg += f"   ├ 💰 거래대금: <b>{s['amount_eok']:,}억</b>{marcap_part} (종가: {s['price']:,}원)\n"
-                msg += f"   ├ 🎯 <b>1차 목표</b>: <b>{s['target_1']:,}원</b> (+5%){target_2_str}\n"
-                msg += f"   ├ 🛡️ <b>손절 기준선</b>: {s['stop_loss']:,}원 (-3%) | ⏳ <b>권장 보유</b>: {hold_period}\n"
+                msg += f"   ├ 🎯 <b>참고 1차 목표</b>: <b>{s['target_1']:,}원</b> (+5%){target_2_str}\n"
+                msg += f"   ├ 🛡️ <b>참고 손절선</b>: {s['stop_loss']:,}원 (-3%) | ⏳ <b>권장 보유</b>: {hold_period}\n"
                 if s.get('reason'):
                     msg += f"   ├ 💡 <b>선정 이유</b>: <i>{s['reason']}</i>\n"
                 msg += f"   └ 📱 <a href=\"{chart_url}\">네이버 증권 차트/호가 바로보기 ↗</a>\n\n"
         else:
-            msg += "\n🚀 <b>오늘의 2~5일 스윙 추천주</b>: 🛡️ 오늘 시장 조건(20일선 정배열 눌림목 & 양봉 돌파)에 부합하는 알짜 주도주가 없어 <b>신규 매수를 전면 보류(0종목)</b>하고 100% 현금을 보존합니다.\n\n"
+            msg += "\n🚀 <b>오늘의 2~5일 스윙 후보</b>: 🛡️ 오늘 조건에 부합하는 스윙 후보 종목이 없습니다 (0종목).\n\n"
     except Exception as e:
-        logger.warning(f"종가베팅 추천 종목 조회 실패: {e}")
+        logger.warning(f"종가베팅 추천 종목 포맷 실패: {e}")
 
     msg += f"\n🔗 <b>실시간 대시보드</b>: {DASHBOARD_URL}"
     return msg
@@ -495,13 +563,24 @@ def get_evening_betting_guide():
     vix_str = f"🌪️ VIX: <b>{vix_close}</b>" if vix_close else ""
     us10y_str = f"📈 美10년물: <b>{us10y_price:.2f}%</b>" if us10y_price else ""
 
+    rec = {}
+    try:
+        from src.recommender import get_recommendations, format_marcap
+        rec = get_recommendations() or {}
+    except Exception as e:
+        logger.warning(f"야간 추천 종목 조회 실패: {e}")
+
+    breadth_val = rec.get('breadth_pct', 50.0) if isinstance(rec, dict) else 50.0
+    ai_risk_val, _, ai_risk_line = compute_unified_ai_risk(breadth_pct=breadth_val)
+
     now_kst = datetime.now(KST)
     ko_wd = ['월', '화', '수', '목', '금', '토', '일'][now_kst.weekday()]
     date_str = f"{now_kst.strftime('%m/%d')}({ko_wd})"
     msg = f"🎯 <b>[20:00 NXT 야간 최종 종가베팅 가이드]</b> ({date_str} 19:40 알림)\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"🎯 <b>핵심 전략</b>: <b>{core_action}</b>\n"
-    msg += f"📊 <b>최종 점수</b>: <b>{score}점</b> [{gauge}] | <b>{betting_label}</b>\n"
+    msg += f"📊 <b>시황 강도 점수 (높을수록 강세)</b>: <b>{score}점</b> [{gauge}] | <b>{betting_label}</b>\n"
+    msg += ai_risk_line
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
     msg += "⚡ <b>야간 글로벌 마켓 현황</b>\n"
@@ -517,10 +596,9 @@ def get_evening_betting_guide():
     msg += f"💡 <b>20:00 마감 전 최종 종가베팅 전략</b>\n{guide}\n"
 
     try:
-        from src.recommender import get_recommendations, format_marcap
-        rec = get_recommendations()
-        closing_picks = rec.get('closing', [])
-        breakout_picks = rec.get('breakout', [])
+        from src.recommender import format_marcap
+        closing_picks = rec.get('closing', []) if isinstance(rec, dict) else []
+        breakout_picks = rec.get('breakout', []) if isinstance(rec, dict) else []
         seen_codes = set()
         picks = []
         for s in (closing_picks[:2] + breakout_picks[:2]):
@@ -531,7 +609,7 @@ def get_evening_betting_guide():
                 break
 
         if picks:
-            msg += "\n🔥 <b>오늘의 주도 대장주 레이더 (지지·저항 돌파)</b>\n"
+            msg += "\n🔥 <b>오늘의 AI 주도주 후보 레이더 (참고용 · 실매수 아님)</b>\n"
             for idx, s in enumerate(picks, 1):
                 chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
                 sec = s.get('sector', '주도주')
@@ -543,8 +621,9 @@ def get_evening_betting_guide():
                 next_res = s.get('next_resistance')
                 marcap_str = s.get('marcap_str') or (format_marcap(s.get('marcap')) if s.get('marcap') else '')
                 marcap_part = f" | 🏢 시총: <b>{marcap_str}</b>" if marcap_str else ""
+                ai_tag = _format_ai_score_tag(s, min_score=90, ai_risk_val=ai_risk_val)
 
-                msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code>\n"
+                msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code>{ai_tag}\n"
                 msg += f"   ├ 💰 거래대금: <b>{s['amount_eok']:,}억</b>{marcap_part} (종가: {s['price']:,}원)\n"
                 if sr_status:
                     msg += f"   ├ 📈 <b>차트분석</b>: {sr_status}\n"
@@ -553,10 +632,10 @@ def get_evening_betting_guide():
                 if cat:
                     src_tag = f" ({cat_src})" if cat_src else ""
                     msg += f"   ├ 📰 <b>핵심재료</b>: <a href=\"{cat_url}\"><i>{cat}</i>{src_tag} ↗</a>\n"
-                msg += f"   ├ 🎯 <b>목표가</b>: <b>{s['target_1']:,}원</b> (+3%) | 손절: {s['stop_loss']:,}원 (-2%)\n"
+                msg += f"   ├ 🎯 <b>참고 목표가</b>: <b>{s['target_1']:,}원</b> (+3%) | 참고 손절: {s['stop_loss']:,}원 (-2%)\n"
                 msg += f"   └ 📱 <a href=\"{chart_url}\">네이버 증권 차트/호가 바로보기 ↗</a>\n\n"
     except Exception as e:
-        logger.warning(f"야간 추천 종목 조회 실패: {e}")
+        logger.warning(f"야간 추천 종목 포맷 실패: {e}")
 
     msg += f"\n🔗 <b>실시간 대시보드</b>: {DASHBOARD_URL}"
     return msg
@@ -629,39 +708,13 @@ def get_midday_market_guide():
             f"• <b>원칙</b>: 14:00 종가베팅 사전 후보 종목 압축에 집중하세요."
         )
 
-    # 13:00 오후장 기준 AI 시황 리스크 (매매봇 기준) 병기
-    mid_risk_line = ""
-    try:
-        from src.risk_score import compute_risk_score, get_risk_assessment
-    except ImportError:
-        from risk_score import compute_risk_score, get_risk_assessment
-    try:
-        mid_vix_c, _ = fetch_vix()
-        _, mid_us10y_d = fetch_us10y()
-        mid_risk = compute_risk_score({
-            'fut_ratio': fut_ratio or 0.0,
-            'sox_ratio': 0.0,
-            'kp_ratio': kp_ratio,
-            'kd_ratio': kd_ratio,
-            'fx_ratio': fx_ratio or 0.0,
-            'fx_close': fx_close or 1350.0,
-            'cnn_score': cnn_score or 50.0,
-            'vix': float(str(mid_vix_c).replace(',', '')) if mid_vix_c else 18.0,
-            'us10y': mid_us10y_d or 0.0,
-            'kp_for_num': kp_for_num,
-            'kp_inst_num': kp_inst_num,
-            'kd_for_num': kd_for_num,
-            'kd_inst_num': kd_inst_num,
-        })
-        mid_assess = get_risk_assessment(mid_risk)
-        mid_risk_line = f"🛡️ <b>AI 시황 리스크 (매매봇 기준)</b>: <b>{mid_risk}점</b> ({mid_assess['grade']} · 60점 초과 시 매수 차단)\n"
-    except Exception as _re:
-        logger.debug(f"13:00 오후장 AI 리스크 산출 생략: {_re}")
+    # 13:00 오후장 기준 AI 시황 리스크 (대시보드·매매봇 동일 9대 팩터)
+    _, _, mid_risk_line = compute_unified_ai_risk(breadth_pct=50.0)
 
     msg = f"☀️ <b>[13:00 오후장 개시 & 수급 중간점검]</b> ({date_str} 13:00 알림)\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"🎯 <b>시장 판정</b>: <b>{market_status}</b>\n"
-    msg += f"📊 <b>텔레그램 시황 점수</b>: <b>{score}점</b> [{gauge}] | <b>메이저 순매수: {total_major:+,}억</b>\n"
+    msg += f"📊 <b>시황 강도 점수 (높을수록 강세)</b>: <b>{score}점</b> [{gauge}] | <b>메이저 순매수: {total_major:+,}억</b>\n"
     if mid_risk_line:
         msg += mid_risk_line
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -726,10 +779,22 @@ def get_preclosing_guide():
             f"• <b>포인트</b>: 15:10 종가베팅 최종 판정 점수에서도 차단될 가능성이 매우 높으니 무리한 매수를 절대 금지합니다."
         )
 
+    rec = {}
+    try:
+        from src.recommender import get_recommendations
+        rec = get_recommendations() or {}
+    except Exception as e:
+        logger.warning(f"사전 추천 종목 조회 실패: {e}")
+
+    breadth_val = rec.get('breadth_pct', 50.0) if isinstance(rec, dict) else 50.0
+    pre_ai_risk, _, pre_risk_line = compute_unified_ai_risk(breadth_pct=breadth_val)
+
     msg = f"🎯 <b>[14:00 종가베팅 1시간 전 사전 레이더]</b> ({date_str} 14:00 알림)\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"🎯 <b>사전 판정</b>: <b>{pre_verdict}</b>\n"
-    msg += f"📊 <b>예비 리스크 점수</b>: <b>{score}점</b> [{gauge}] | <b>15:10 골든타임 1시간 전</b>\n"
+    msg += f"📊 <b>시황 강도 점수 (높을수록 강세)</b>: <b>{score}점</b> [{gauge}] | <b>15:10 골든타임 1시간 전</b>\n"
+    if pre_risk_line:
+        msg += pre_risk_line
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
     msg += "⚡ <b>장마감 1시간 전 시장 지표 체크</b>\n"
@@ -740,22 +805,16 @@ def get_preclosing_guide():
 
     msg += f"\n💡 <b>15:10 골든타임 대비 행동 요령</b>\n{pre_guide}\n"
 
-    # 지수 급락(-2.5% 이하) 시에는 위험 종목 매수를 부추기지 않도록 안내
     if avg_kr_ratio <= -2.5:
-        msg += "\n⚠️ <b>[리스크 알림]</b> 시장 전면 급락으로 상방 종목이 극히 제한적입니다. 15:10 시스템 차단 여부를 반드시 확인하세요.\n"
-    else:
-        try:
-            from src.recommender import get_recommendations
-            rec = get_recommendations()
-            closing_picks = rec.get('closing', [])
-            if closing_picks:
-                msg += "\n🔥 <b>현재 시점 유력 후보 레이더 TOP 3 (15:10 최종 확정)</b>\n"
-                for idx, s in enumerate(closing_picks[:3], 1):
-                    chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
-                    sec = s.get('sector', '주도주')
-                    msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code> | 💰 거래대금: <b>{s['amount_eok']:,}억</b>\n"
-        except Exception as e:
-            logger.warning(f"사전 추천 종목 조회 실패: {e}")
+        msg += "\n⚠️ <b>[리스크 알림]</b> 시장 전면 급락으로 15:10 자동매매 차단 가능성이 매우 높습니다. 아래 후보 종목은 참고/검증용으로만 확인하세요.\n"
+    closing_picks = rec.get('closing', []) if isinstance(rec, dict) else []
+    if closing_picks:
+        msg += "\n🔥 <b>현재 시점 AI 유력 후보 TOP 3 (참고용 · 15:10 확정)</b>\n"
+        for idx, s in enumerate(closing_picks[:3], 1):
+            chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
+            sec = s.get('sector', '주도주')
+            ai_tag = _format_ai_score_tag(s, min_score=90, ai_risk_val=pre_ai_risk)
+            msg += f"{idx}. <a href=\"{chart_url}\"><b>{s['name']}</b></a> (<b>{s['change_pct']:+.2f}%</b>) 🏷️ <code>[{sec}]</code>{ai_tag} | 💰 거래대금: <b>{s['amount_eok']:,}억</b>\n"
 
     try:
         from src.market_flow import get_market_flow_data
@@ -808,9 +867,21 @@ def get_market_close_guide():
     else:
         market_summary = "외인·기관의 수급 공방 속에 개별 종목 장세로 정규장이 마감되었습니다."
 
+    rec = {}
+    try:
+        from src.recommender import get_recommendations
+        rec = get_recommendations() or {}
+    except Exception as e:
+        logger.warning(f"마감 추천 종목 로드 실패: {e}")
+
+    breadth_val = rec.get('breadth_pct', 50.0) if isinstance(rec, dict) else 50.0
+    close_ai_risk, _, close_risk_line = compute_unified_ai_risk(breadth_pct=breadth_val)
+
     msg = f"🏁 <b>[15:35 정규장 최종 마감 종합 리포트]</b> ({date_str} 15:35 알림)\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n"
     msg += f"📢 <b>장 마감 총평</b>: <b>{market_summary}</b>\n"
+    if close_risk_line:
+        msg += close_risk_line
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
     msg += "📊 <b>1. 정규장 최종 마감 지수 & 수급</b>\n"
@@ -822,25 +893,25 @@ def get_market_close_guide():
         msg += f"• {vix_str} | {us10y_str}\n"
 
     try:
-        from src.recommender import get_recommendations
-        rec = get_recommendations()
-        closing_picks = rec.get('closing', [])
-        swing_picks = rec.get('swing', [])
+        closing_picks = rec.get('closing', []) if isinstance(rec, dict) else []
+        swing_picks = rec.get('swing', []) if isinstance(rec, dict) else []
 
         if closing_picks:
-            msg += "\n🎯 <b>2. 오늘 AI 종가베팅 주도주 최종 종가</b>\n"
+            msg += "\n🎯 <b>2. 오늘 AI 종가베팅 후보 최종 종가 (참고용 · 실매수 아님)</b>\n"
             for idx, s in enumerate(closing_picks[:2], 1):
                 chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
-                msg += f"• {idx}등: <a href=\"{chart_url}\"><b>{s['name']}</b></a> ({s.get('change_pct', 0.0):+.2f}%) — 마감가 <b>{s.get('price', 0):,}원</b>\n"
-                msg += f"  ↳ 1차 익절목표: {s.get('target_1', 0):,}원 (+2~3%) | 손절선: {s.get('stop_loss', 0):,}원 (-2%)\n"
+                ai_tag = _format_ai_score_tag(s, min_score=90, ai_risk_val=close_ai_risk)
+                msg += f"• {idx}등: <a href=\"{chart_url}\"><b>{s['name']}</b></a> ({s.get('change_pct', 0.0):+.2f}%){ai_tag} — 마감가 <b>{s.get('price', 0):,}원</b>\n"
+                msg += f"  ↳ 참고 1차 목표: {s.get('target_1', 0):,}원 (+2~3%) | 참고 손절선: {s.get('stop_loss', 0):,}원 (-2%)\n"
 
         if swing_picks:
-            msg += "\n🚀 <b>3. 2~5일 스윙 주도주 최종 종가</b>\n"
+            msg += "\n🚀 <b>3. 2~5일 스윙 후보 최종 종가 (참고용 · 실매수 아님)</b>\n"
             for idx, s in enumerate(swing_picks[:2], 1):
                 chart_url = s.get('chart_url', f"https://m.stock.naver.com/domestic/stock/{s['code']}/total")
-                msg += f"• <a href=\"{chart_url}\"><b>{s['name']}</b></a> ({s.get('change_pct', 0.0):+.2f}%) — 마감가 <b>{s.get('price', 0):,}원</b> (거래대금 {s.get('amount_eok', 0):,}억)\n"
+                ai_tag = _format_ai_score_tag(s, min_score=85, ai_risk_val=close_ai_risk)
+                msg += f"• <a href=\"{chart_url}\"><b>{s['name']}</b></a> ({s.get('change_pct', 0.0):+.2f}%){ai_tag} — 마감가 <b>{s.get('price', 0):,}원</b> (거래대금 {s.get('amount_eok', 0):,}억)\n"
     except Exception as e:
-        logger.warning(f"마감 추천 종목 로드 실패: {e}")
+        logger.warning(f"마감 추천 종목 포맷 실패: {e}")
 
     try:
         from src.market_flow import get_market_flow_data
