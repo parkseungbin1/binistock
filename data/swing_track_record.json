@@ -995,13 +995,13 @@
             "5일선지지"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/035900/total",
-          "highest_price": 46250,
-          "lowest_price": 46250,
-          "max_return_pct": 0.0,
-          "status": "🛡️ 리스크 차단 (사후추적)",
+          "highest_price": 47550,
+          "lowest_price": 45800,
+          "max_return_pct": 2.81,
+          "status": "진행중 (1일차)",
           "is_blocked_sim": true,
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1
         }
       ],
       "evaluated": false,

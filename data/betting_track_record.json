@@ -1,156 +1,6 @@
 {
   "history": [
     {
-      "date": "2026-10-21",
-      "evaluated": true,
-      "success_count": 2,
-      "total_count": 3,
-      "picks": [
-        {
-          "code": "000100",
-          "name": "유한양행",
-          "market": "KOSPI",
-          "sector": "제약/바이오",
-          "catalyst": "렉라자 글로벌 처방 확대 및 마일스톤 유입",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/000100/news",
-          "catalyst_source": "한국경제",
-          "close_price": 142000,
-          "open_price": 146000,
-          "gap_pct": 2.82,
-          "is_success": true,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/000100/total"
-        },
-        {
-          "code": "237690",
-          "name": "에스티팜",
-          "market": "KOSDAQ",
-          "sector": "제약/바이오",
-          "catalyst": "올리고핵산 원료의약품 공급 계약 및 CAPA 증설",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/237690/news",
-          "catalyst_source": "매일경제",
-          "close_price": 98500,
-          "open_price": 101500,
-          "gap_pct": 3.05,
-          "is_success": true,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/237690/total"
-        },
-        {
-          "code": "141080",
-          "name": "리가켐바이오",
-          "market": "KOSDAQ",
-          "sector": "제약/바이오",
-          "catalyst": "ADC 플랫폼 추가 기술이전 기대감 및 임상 진척",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/141080/news",
-          "catalyst_source": "이데일리",
-          "close_price": 125000,
-          "open_price": 124000,
-          "gap_pct": -0.8,
-          "is_success": false,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/141080/total"
-        }
-      ]
-    },
-    {
-      "date": "2026-10-22",
-      "evaluated": true,
-      "success_count": 3,
-      "total_count": 3,
-      "picks": [
-        {
-          "code": "032860",
-          "name": "인화정공",
-          "market": "KOSDAQ",
-          "sector": "조선/기계",
-          "catalyst": "선박엔진 부품 수주 급증 및 실적 턴어라운드",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/032860/news",
-          "catalyst_source": "파이낸셜뉴스",
-          "close_price": 44000,
-          "open_price": 45550,
-          "gap_pct": 3.52,
-          "is_success": true,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/032860/total"
-        },
-        {
-          "code": "413630",
-          "name": "씨피시스템",
-          "market": "KOSDAQ",
-          "sector": "기계/로봇",
-          "catalyst": "케이블체인 국내 1위 및 글로벌 전동화 부품 납품",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/413630/news",
-          "catalyst_source": "헤럴드경제",
-          "close_price": 4360,
-          "open_price": 4470,
-          "gap_pct": 2.52,
-          "is_success": true,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/413630/total"
-        },
-        {
-          "code": "089890",
-          "name": "코세스",
-          "market": "KOSDAQ",
-          "sector": "반도체",
-          "catalyst": "반도체 레이저 리워크 장비 독점 공급 호조",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/089890/news",
-          "catalyst_source": "전자신문",
-          "close_price": 15600,
-          "open_price": 16200,
-          "gap_pct": 3.85,
-          "is_success": true,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/089890/total"
-        }
-      ]
-    },
-    {
-      "date": "2026-10-23",
-      "evaluated": true,
-      "success_count": 3,
-      "total_count": 3,
-      "picks": [
-        {
-          "code": "042700",
-          "name": "한미반도체",
-          "market": "KOSPI",
-          "sector": "반도체",
-          "catalyst": "TC본더 글로벌 독점 공급 수혜 및 HBM 증설",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/042700/news",
-          "catalyst_source": "머니투데이",
-          "close_price": 124500,
-          "open_price": 129000,
-          "gap_pct": 3.61,
-          "is_success": true,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/042700/total"
-        },
-        {
-          "code": "028050",
-          "name": "삼성E&A",
-          "market": "KOSPI",
-          "sector": "플랜트/건설",
-          "catalyst": "사우디 아람코 파드힐리 가스전 대규모 수주 잭팟",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/028050/news",
-          "catalyst_source": "한국경제",
-          "close_price": 27500,
-          "open_price": 28600,
-          "gap_pct": 4.0,
-          "is_success": true,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/028050/total"
-        },
-        {
-          "code": "126340",
-          "name": "비나텍",
-          "market": "KOSDAQ",
-          "sector": "2차전지",
-          "catalyst": "슈퍼 커패시터 북미 데이터센터 백업 전원 공급 기대",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/126340/news",
-          "catalyst_source": "이데일리",
-          "close_price": 118600,
-          "open_price": 121500,
-          "gap_pct": 2.45,
-          "is_success": true,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/126340/total"
-        }
-      ]
-    },
-    {
       "date": "2026-10-26",
       "evaluated": true,
       "picks": [
@@ -1952,17 +1802,17 @@
           "catalyst_url": "https://n.news.naver.com/mnews/article/014/0005607440",
           "catalyst_source": "파이낸셜뉴스",
           "catalyst_body": "국내 증시가 급락하며 투자심리가 얼어붙은 가운데 한미약품이 나 홀로 강세다. 미국발 기술주 충격과 외국인·기관의 매도 공세로 코스피와 코스닥이 5% 넘게 밀렸지만 한미약품은 자체 개발한 비만치료제 ",
-          "close_price": 454000,
-          "price": 454000,
+          "close_price": 449500,
+          "price": 449500,
           "change_pct": 7.58,
           "amount_eok": 868,
           "marcap": 5816189914000,
           "marcap_str": "5조 8,162억",
-          "target_1": 463080,
+          "target_1": 462985,
           "target_1_pct": "+2.0%",
-          "target_2": 476700,
+          "target_2": 471975,
           "target_2_pct": "+5.0%",
-          "stop_loss": 444920,
+          "stop_loss": 440510,
           "stop_loss_pct": "-2.0%",
           "score": 58,
           "reason": "거래대금 868억 폭발(시총회전율 1.5%) · 고가 마감 양봉(윗꼬리 24%) · 차트: 거래대금 수급 우수 · 당일 VWAP 상회(+0.4% · 고점 12:29) · 🔥당일 주도섹터(주도주) 동조화 · 🟡C급 단발·홍보·재료소멸 주의(-6점) · ⚠️머리 위 저항선 충돌 위험 (60일선(+1.0%))",
@@ -1974,11 +1824,17 @@
             "⚠️재료소멸주의"
           ],
           "sr_status": "거래대금 수급 우수",
-          "support_price": 444920,
+          "support_price": 440510,
           "next_resistance": "476,700원",
           "chart_url": "https://m.stock.naver.com/domestic/stock/128940/total",
           "status": "🛡️ AI 리스크 차단 (미매수 사후추적)",
-          "risk_score": 87
+          "risk_score": 87,
+          "open_price": 446500,
+          "next_high_price": 446500,
+          "gap_pct": -0.67,
+          "high_pct": -0.67,
+          "is_success": false,
+          "plan_return_pct": -0.67
         },
         {
           "code": "180640",
@@ -1989,17 +1845,17 @@
           "catalyst_url": "https://n.news.naver.com/mnews/article/138/0002249374",
           "catalyst_source": "디지털데일리",
           "catalyst_body": "한진칼이 경영권 분쟁 과정에서 약 663억원 규모의 자사주를 사내근로복지기금에 출연한 것과 관련해 경찰이 조원태 한진그룹 회장을 상대로 강제수사에 나섰다. 20일 경찰에 따르면 서울경찰청 광역수사단",
-          "close_price": 236000,
-          "price": 236000,
+          "close_price": 237000,
+          "price": 237000,
           "change_pct": 9.26,
           "amount_eok": 1239,
           "marcap": 15755896900000,
           "marcap_str": "15조 7,559억",
-          "target_1": 240720,
+          "target_1": 244110,
           "target_1_pct": "+2.0%",
-          "target_2": 247800,
+          "target_2": 248850,
           "target_2_pct": "+5.0%",
-          "stop_loss": 231280,
+          "stop_loss": 232260,
           "stop_loss_pct": "-2.0%",
           "score": 57,
           "reason": "거래대금 1,239억 폭발(시총회전율 0.8%) · 고가 마감 양봉(윗꼬리 35%) · 차트: ⚡ 20일선 지지 우상향 파동 · 당일 VWAP 상회(+0.1% · 고점 09:39) · 🔥당일 주도섹터(주도주) 동조화 · 🏦외인·기관 쌍끌이 수급 유입(+7점) · 🔴F급 악재·리스크 감지(-20점) · ⚠️이격과열상투(20일선+29.3%, 60일선+57.9%)",
@@ -2014,16 +1870,24 @@
             "⚠️재료소멸주의"
           ],
           "sr_status": "⚡ 20일선 지지 우상향 파동",
-          "support_price": 182565,
+          "support_price": 232260,
           "next_resistance": "245,000원 (+3.8%)",
           "chart_url": "https://m.stock.naver.com/domestic/stock/180640/total",
           "status": "🛡️ AI 리스크 차단 (미매수 사후추적)",
-          "risk_score": 87
+          "risk_score": 87,
+          "open_price": 235500,
+          "next_high_price": 240000,
+          "gap_pct": -0.63,
+          "high_pct": 1.27,
+          "is_success": false,
+          "plan_return_pct": -0.63
         }
       ],
-      "evaluated": false,
+      "evaluated": true,
       "blocked": true,
-      "risk_score": 87
+      "risk_score": 87,
+      "success_count": 0,
+      "total_count": 2
     }
   ]
 }
