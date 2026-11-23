@@ -1888,6 +1888,51 @@
       "risk_score": 87,
       "success_count": 0,
       "total_count": 2
+    },
+    {
+      "date": "2026-11-23",
+      "picks": [
+        {
+          "code": "278470",
+          "name": "에이피알",
+          "market": "KOSPI",
+          "sector": "화학/소재",
+          "catalyst": "한중 FTA 훈풍에 화장품주 강세…에이피알 9%대↑ [종목NOW]",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/014/0005608280",
+          "catalyst_source": "파이낸셜뉴스",
+          "catalyst_body": "에이피알이 23일 오후 장 들어 9% 넘게 오르고 있다. 한중 자유무역협정(FTA) 서비스·투자 후속협상의 실질 타결로 중국 소비시장 회복과 K뷰티 수요 확대에 대한 기대가 투자심리를 뒷받침하는 모",
+          "close_price": 259000,
+          "price": 259000,
+          "change_pct": 9.98,
+          "amount_eok": 1315,
+          "marcap": 9696482145000,
+          "marcap_str": "9조 6,965억",
+          "target_1": 264180,
+          "target_1_pct": "+2.0%",
+          "target_2": 271950,
+          "target_2_pct": "+5.0%",
+          "stop_loss": 253820,
+          "stop_loss_pct": "-2.0%",
+          "score": 90,
+          "reason": "거래대금 1,315억 폭발(시총회전율 1.4%) · 고가 마감 양봉(윗꼬리 8%) · 차트: ⚡ 20일선 지지 우상향 파동 · 당일 VWAP 상회(+2.4% · 고점 14:57) · 🔥당일 주도섹터(화학/소재) 동조화 · 👑주도섹터(화학/소재) 1등 대장주",
+          "holding_period": "당일 15:10~15:30 매수 → 익일 09:00~09:20 전량 분할 매도",
+          "tags": [
+            "거래대금폭발",
+            "단단한양봉",
+            "익일시초가노림",
+            "20일선지지",
+            "우상향파동",
+            "섹터1등대장"
+          ],
+          "sr_status": "⚡ 20일선 지지 우상향 파동",
+          "support_price": 252875,
+          "next_resistance": "293,000원 (+13.1%)",
+          "chart_url": "https://m.stock.naver.com/domestic/stock/278470/total"
+        }
+      ],
+      "evaluated": false,
+      "blocked": false,
+      "risk_score": 59
     }
   ]
 }
