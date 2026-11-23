@@ -178,10 +178,12 @@ def compute_unified_ai_risk(breadth_pct: float = 50.0):
         }
         ai_risk_val = compute_risk_score(risk_ctx)
         assess = get_risk_assessment(ai_risk_val)
-        if ai_risk_val <= 60:
-            badge = f"🟢 {assess['grade']} · 60점 이하 자동매매 허용"
+        if ai_risk_val <= 40:
+            badge = f"🟢 {assess['grade']} · ≤40점 강세 완화 (종가 85점↑ · 스윙 82점↑)"
+        elif ai_risk_val <= 60:
+            badge = f"🟡 {assess['grade']} · 41~60점 표준 (종가 90점↑ · 스윙 85점↑)"
         elif ai_risk_val <= 70:
-            badge = f"🟡 {assess['grade']} · 61~70점 역추세 S+(95점↑) 소액 예외만 허용"
+            badge = f"🟠 {assess['grade']} · 61~70점 역추세 S+(95점↑) 소액 예외만 허용"
         else:
             badge = f"🚨 {assess['grade']} · 70점 초과 자동매매 전면 차단"
         line = f"🛡️ <b>AI 시황 리스크 (대시보드·봇 동일)</b>: <b>{ai_risk_val}점</b> ({badge})\n"
@@ -192,7 +194,7 @@ def compute_unified_ai_risk(breadth_pct: float = 50.0):
 
 
 def _format_ai_score_tag(stock: dict, min_score: int = 90, ai_risk_val=None) -> str:
-    """텔레그램 추천 후보 종목 옆에 AI 종목 점수와 봇 진입 기준 통과 여부를 표시합니다."""
+    """텔레그램 추천 후보 종목 옆에 AI 종목 점수와 4단계 시황 연동 기준 통과 여부를 표시합니다."""
     raw_sc = stock.get('score')
     if raw_sc is None:
         return ""
@@ -201,14 +203,22 @@ def _format_ai_score_tag(stock: dict, min_score: int = 90, ai_risk_val=None) -> 
     except Exception:
         return ""
 
+    is_swing = (min_score <= 85)
+    eff_min = min_score
+    if ai_risk_val is not None and ai_risk_val <= 40:
+        eff_min = 82 if is_swing else 85
+
     if ai_risk_val is not None and ai_risk_val > 70:
         status = "시황차단·참고후보"
     elif ai_risk_val is not None and ai_risk_val > 60:
-        status = "역추세95↑예외" if sc >= 95 else "시황주의·참고후보"
-    elif sc >= min_score:
-        status = f"{min_score}점↑ 통과"
+        status = "역추세95↑예외" if (not is_swing and sc >= 95) else "시황주의·참고후보"
+    elif sc >= eff_min:
+        if ai_risk_val is not None and ai_risk_val <= 40 and sc < min_score:
+            status = f"강세완화 {eff_min}점↑ 통과"
+        else:
+            status = f"{eff_min}점↑ 통과"
     else:
-        status = f"{min_score}점 미달·참고후보"
+        status = f"{eff_min}점 미달·참고후보"
     return f" | 🎯 <b>AI {sc}점</b> ({status})"
 
 

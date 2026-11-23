@@ -184,7 +184,15 @@ def generate_html():
         risk_grade = assessment['grade']
         risk_color = assessment['color']
         risk_badge_class = assessment['badge_class']
-        risk_desc = f"{assessment['desc']} <span style='color:#93c5fd; font-weight:600;'>[v2.0 황금비율: 국내체력 53% : 글로벌 47% | 상승종목 {breadth_val:.1f}% · 지수윗꼬리 {kp_pb:.2f}%p]</span>"
+        if ai_risk_score <= 40:
+            regime_cutoff_badge = "🟢 강세·안정장 자동 완화 (종가 85점↑ · 스윙 82점↑)"
+        elif ai_risk_score <= 60:
+            regime_cutoff_badge = "🟡 표준 기준 (종가 90점↑ · 스윙 85점↑)"
+        elif ai_risk_score <= 70:
+            regime_cutoff_badge = "🟠 약세 역추세 예외 (종가 95점↑ 소액30% · 스윙 차단)"
+        else:
+            regime_cutoff_badge = "🔴 패닉장 전면 차단 (신규 매수 0%)"
+        risk_desc = f"{assessment['desc']} <span style='color:#93c5fd; font-weight:600;'>[v2.0 황금비율: 국내체력 53% : 글로벌 47% | 상승종목 {breadth_val:.1f}% · 지수윗꼬리 {kp_pb:.2f}%p]</span> <span style='color:#fde68a; font-weight:700;'>| {regime_cutoff_badge}</span>"
     except Exception as e:
         print(f"리스크 스코어 계산 실패: {e}")
         ai_risk_score = 50
