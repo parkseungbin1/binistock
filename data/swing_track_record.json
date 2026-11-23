@@ -998,13 +998,15 @@
           "highest_price": 47550,
           "lowest_price": 45800,
           "max_return_pct": 2.81,
-          "status": "진행중 (1일차)",
+          "status": "본절 방어 (+0.3%)",
           "is_blocked_sim": true,
-          "completed": false,
-          "holding_days": 1
+          "completed": true,
+          "holding_days": 1,
+          "is_success": true,
+          "final_return_pct": 0.3
         }
       ],
-      "evaluated": false,
+      "evaluated": true,
       "blocked": true,
       "risk_score": 87
     }
