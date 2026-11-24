@@ -1901,17 +1901,17 @@
           "catalyst_url": "https://n.news.naver.com/mnews/article/014/0005608280",
           "catalyst_source": "파이낸셜뉴스",
           "catalyst_body": "에이피알이 23일 오후 장 들어 9% 넘게 오르고 있다. 한중 자유무역협정(FTA) 서비스·투자 후속협상의 실질 타결로 중국 소비시장 회복과 K뷰티 수요 확대에 대한 기대가 투자심리를 뒷받침하는 모",
-          "close_price": 259000,
-          "price": 259000,
+          "close_price": 256000,
+          "price": 256000,
           "change_pct": 9.98,
           "amount_eok": 1315,
           "marcap": 9696482145000,
           "marcap_str": "9조 6,965억",
-          "target_1": 264180,
+          "target_1": 263680,
           "target_1_pct": "+2.0%",
-          "target_2": 271950,
+          "target_2": 268800,
           "target_2_pct": "+5.0%",
-          "stop_loss": 253820,
+          "stop_loss": 250880,
           "stop_loss_pct": "-2.0%",
           "score": 90,
           "reason": "거래대금 1,315억 폭발(시총회전율 1.4%) · 고가 마감 양봉(윗꼬리 8%) · 차트: ⚡ 20일선 지지 우상향 파동 · 당일 VWAP 상회(+2.4% · 고점 14:57) · 🔥당일 주도섹터(화학/소재) 동조화 · 👑주도섹터(화학/소재) 1등 대장주",
@@ -1925,14 +1925,22 @@
             "섹터1등대장"
           ],
           "sr_status": "⚡ 20일선 지지 우상향 파동",
-          "support_price": 252875,
+          "support_price": 250880,
           "next_resistance": "293,000원 (+13.1%)",
-          "chart_url": "https://m.stock.naver.com/domestic/stock/278470/total"
+          "chart_url": "https://m.stock.naver.com/domestic/stock/278470/total",
+          "open_price": 254500,
+          "next_high_price": 264500,
+          "gap_pct": -0.59,
+          "high_pct": 3.32,
+          "is_success": true,
+          "plan_return_pct": 0.71
         }
       ],
-      "evaluated": false,
+      "evaluated": true,
       "blocked": false,
-      "risk_score": 59
+      "risk_score": 59,
+      "success_count": 1,
+      "total_count": 1
     }
   ]
 }
