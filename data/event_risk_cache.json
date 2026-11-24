@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-24 11:12:30",
+  "updated_at": "2026-11-24 13:03:19",
   "overnight_risk": {
     "score": 0,
     "level": "GREEN",
@@ -252,14 +252,6 @@
       "tag": "🔥 시총 0.45% 소각 예정 (D-6)"
     },
     {
-      "corp_name": "화신",
-      "ratio_pct": 0.18,
-      "burn_date": "2026-11-25",
-      "d_day": 1,
-      "boost_score": 0,
-      "tag": "🔥 시총 0.18% 소각 예정 (D-1)"
-    },
-    {
       "corp_name": "씨엔알리서치",
       "ratio_pct": 0.01,
       "burn_date": "2026-11-24",
@@ -358,11 +350,6 @@
       "boost_score": 0,
       "tag": "🔥 시총 0.45% 소각 예정 (D-6)",
       "reason": "자사주 시총 0.45% 영구소각 호재"
-    },
-    "화신": {
-      "boost_score": 0,
-      "tag": "🔥 시총 0.18% 소각 예정 (D-1)",
-      "reason": "자사주 시총 0.18% 영구소각 호재"
     },
     "씨엔알리서치": {
       "boost_score": 0,
