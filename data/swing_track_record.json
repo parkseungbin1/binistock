@@ -1056,6 +1056,52 @@
       "evaluated": false,
       "blocked": true,
       "risk_score": 59
+    },
+    {
+      "date": "2026-11-24",
+      "picks": [
+        {
+          "code": "036540",
+          "name": "SFA반도체",
+          "market": "KOSDAQ",
+          "sector": "반도체",
+          "catalyst": "SFA반도체 기관·외인 대량 수급 유입 및 업종 주도 모멘텀",
+          "catalyst_url": "https://m.stock.naver.com/domestic/stock/036540/news",
+          "catalyst_source": "실시간 수급",
+          "entry_price": 8960,
+          "price": 8960,
+          "change_pct": 0.11,
+          "amount_eok": 449,
+          "marcap": 1473564314880,
+          "marcap_str": "1조 4,736억",
+          "target_1": 9408,
+          "target_1_pct": "+5.0%",
+          "target_2": 9766,
+          "target_2_pct": "+9.0%",
+          "stop_loss": 8691,
+          "stop_loss_pct": "-3.0%",
+          "rule_v": 2,
+          "score": 89,
+          "reason": "1일 전 +14.2% 기준봉 출현 · 거래량 56%로 건조(숨고르기) · 기준봉 중심선(8,450원)/5일선(8,696원) 지지",
+          "holding_period": "2~5영업일 분할 매도 (1차 +5% / 2차 +9%)",
+          "tags": [
+            "기준봉눌림목타점",
+            "거래량56%수축",
+            "5일선지지"
+          ],
+          "chart_url": "https://m.stock.naver.com/domestic/stock/036540/total",
+          "highest_price": 8960,
+          "lowest_price": 8960,
+          "max_return_pct": 0.0,
+          "status": "진행중",
+          "is_blocked_sim": false,
+          "completed": false,
+          "holding_days": 0
+        }
+      ],
+      "evaluated": false,
+      "blocked": false,
+      "risk_score": 34
     }
   ]
 }
