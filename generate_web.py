@@ -368,8 +368,10 @@ def generate_html():
         cat_body = pick.get('catalyst_body', '')
         cat_box = ''
         if cat:
+            is_no_news = ('뉴스 없음' in str(cat_src)) or ('실시간 수급' in str(cat_src)) or ('뉴스·공시 없음' in str(cat))
+            cat_btn_label = '네이버 뉴스 목록 ↗' if is_no_news else '기사 원문 확인 ↗'
             src_tag = f'<span class="cat-source">{cat_src}</span>' if cat_src else ''
-            body_html = f'<div class="cat-body-snippet">{cat_body}...</div>' if cat_body else ''
+            body_html = f'<div class="cat-body-snippet">{cat_body}</div>' if cat_body else ''
             cat_box = f'''
             <div class="rec-cat-card">
                 <div class="cat-card-header">
@@ -378,7 +380,7 @@ def generate_html():
                         {src_tag}
                     </div>
                     <a href="{cat_url}" target="_blank" rel="noopener noreferrer" class="cat-link-btn">
-                        기사 원문 확인 ↗
+                        {cat_btn_label}
                     </a>
                 </div>
                 <div class="cat-headline">

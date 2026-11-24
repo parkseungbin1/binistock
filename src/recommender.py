@@ -360,13 +360,13 @@ def fetch_stock_catalyst(code, name="", sector=""):
         res = disc_info
     else:
         res = {
-            'title': f"{short_name} 기관·외인 대량 수급 유입 및 업종 주도 모멘텀",
+            'title': f"{short_name} — 당일 개별 뉴스·공시 없음 (순수 수급·차트 포착)",
             'url': f"https://m.stock.naver.com/domestic/stock/{code}/news",
-            'source': '실시간 수급',
-            'body': '당일 거래대금 폭발 및 지지저항 돌파 주도주',
+            'source': '뉴스 없음 · 수급/차트',
+            'body': '별도 단독 뉴스·공시 없이 거래대금·수급·차트 조건으로 포착된 종목입니다.',
             'tier': 'B',
             'score_delta': 0.0,
-            'tier_label': '⚪B급 수급 모멘텀(0점)',
+            'tier_label': '⚪B급 수급·차트 포착(뉴스 0점)',
             'has_hard_catalyst': False,
         }
 
