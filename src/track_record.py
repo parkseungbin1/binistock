@@ -254,6 +254,7 @@ def evaluate_latest_performance():
 
             open_p = float(nxt['Open'].iloc[0])
             high_p = float(nxt['High'].iloc[0])
+            low_p = float(nxt['Low'].iloc[0])
             if target['date'] in df.index:
                 close_raw = df.loc[target['date'], 'Close']
                 close_p = int(close_raw.iloc[-1] if hasattr(close_raw, 'iloc') else close_raw)
@@ -265,6 +266,7 @@ def evaluate_latest_performance():
                 p['support_price'] = int(round(close_p * 0.98))
             gap_pct = ((open_p - close_p) / close_p) * 100
             high_pct = ((high_p - close_p) / close_p) * 100
+            low_pct = ((low_p - close_p) / close_p) * 100
 
             is_success = (gap_pct >= 1.5) or (high_pct >= 3.0)
             if is_success:
@@ -272,16 +274,28 @@ def evaluate_latest_performance():
 
             p['open_price'] = int(open_p)
             p['next_high_price'] = int(high_p)
+            p['next_low_price'] = int(low_p)
             p['gap_pct'] = round(gap_pct, 2)
             p['high_pct'] = round(high_pct, 2)
+            p['low_pct'] = round(low_pct, 2)
+            p['path_whipsaw'] = bool(low_pct <= -2.0 and high_pct >= 2.0)
             p['is_success'] = is_success
-            # 매매 계획(1차 +2% / 2차 +5% 분할 지정가, 갭 -2% 이하 시초 청산) 재현 수익률 (성공 배지와 별개의 현실 지표)
+            # 경로 의존성(장중 저점 -2% 터치 여부) + 거래비용(0.23%) 반영 보수적 재현 수익률
+            cost_pct = 0.23
             if gap_pct <= -2.0:
-                p['plan_return_pct'] = round(gap_pct, 2)
+                p['plan_return_pct'] = round(gap_pct - cost_pct, 2)
+            elif low_pct <= -2.0 and high_pct < 2.0:
+                p['plan_return_pct'] = round(-2.0 - cost_pct, 2)
+            elif low_pct <= -2.0 and high_pct >= 2.0:
+                # 장중 손절선(-2%)과 익절선(+2%) 동시 터치 혼조일: 50% 손절 + 50% 분할익절 보수 혼합
+                _a = 2.0
+                _b = 5.0 if high_pct >= 5.0 else gap_pct
+                opt_ret = 0.5 * _a + 0.5 * _b
+                p['plan_return_pct'] = round(0.5 * (-2.0) + 0.5 * opt_ret - cost_pct, 2)
             else:
                 _a = 2.0 if high_pct >= 2.0 else gap_pct
                 _b = 5.0 if high_pct >= 5.0 else gap_pct
-                p['plan_return_pct'] = round(0.5 * _a + 0.5 * _b, 2)
+                p['plan_return_pct'] = round(0.5 * _a + 0.5 * _b - cost_pct, 2)
 
             badge = "🎯 갭상승 성공" if is_success else ("✨ 보합권" if gap_pct >= 0 else "🔻 갭하락")
             results.append(f"• <b>{name}</b>: 종가 {close_p:,}원 → 시초가 {int(open_p):,}원 (<b>{gap_pct:+.2f}%</b> {badge})")
@@ -429,6 +443,125 @@ def get_self_tuning_insights():
     }
 
 
+def render_live_account_comparison_html(paper_win_rate: float = 0.0, paper_rr: float = 0.0) -> str:
+    """
+    서류상 트랙레코드 vs 실제 키움 계좌 체결 PnL 대조표 HTML 생성.
+    - 우선순위 1: ./data/live_trade_telemetry.json (GitHub Actions / Pages 배포용 비식별 원장)
+    - 우선순위 2: ../kiwoom-auto-trader/data/trade_history.json (로컬 폴백)
+    """
+    try:
+        candidates = [
+            STATE_DIR / 'live_trade_telemetry.json',
+            STATE_DIR.parent.parent / 'kiwoom-auto-trader' / 'data' / 'trade_history.json',
+        ]
+        trades = []
+        updated_at = ''
+        for path in candidates:
+            if path.exists():
+                with open(path, 'r', encoding='utf-8') as f:
+                    raw = json.load(f)
+                if isinstance(raw, dict):
+                    trades = raw.get('trades', []) or []
+                    updated_at = raw.get('updated_at', '')
+                elif isinstance(raw, list):
+                    trades = raw
+                if trades:
+                    break
+        if not trades:
+            return ""
+
+        pnls = [int(t.get('pnl_won', 0) or 0) for t in trades if t.get('pnl_won') is not None]
+        n_total = len(pnls)
+        if n_total == 0:
+            return ""
+
+        wins = [x for x in pnls if x > 0]
+        losses = [x for x in pnls if x < 0]
+        n_win = len(wins)
+        n_loss = len(losses)
+        live_wr = (n_win / n_total) * 100.0
+        total_pnl = sum(pnls)
+        avg_win_won = int(round(sum(wins) / n_win)) if n_win else 0
+        avg_loss_won = int(round(abs(sum(losses)) / n_loss)) if n_loss else 0
+        payoff_ratio = (avg_win_won / avg_loss_won) if avg_loss_won > 0 else (9.99 if avg_win_won > 0 else 0.0)
+        pf = (sum(wins) / abs(sum(losses))) if losses and sum(losses) != 0 else (9.99 if wins else 0.0)
+
+        target_samples = 30
+        prog_pct = min(100, int(round(n_total / target_samples * 100)))
+        if n_total < target_samples:
+            diag_badge = f"⏳ 실전 표본 수집 중 ({n_total}/{target_samples}건 · {prog_pct}%)"
+            diag_color = "#fbbf24"
+        elif payoff_ratio < 1.0:
+            diag_badge = "⚠️ 손익비 개선 필요 (1차 익절 +2.5%·40% / 잔량 60% 트레일링 권장)"
+            diag_color = "#f87171"
+        elif payoff_ratio >= 1.2 and live_wr >= 50.0:
+            diag_badge = "✅ 복리 우상향 증명 구간 (손익비·승률 우수)"
+            diag_color = "#34d399"
+        else:
+            diag_badge = "🟡 중립 검증 구간 (추세 관찰)"
+            diag_color = "#60a5fa"
+
+        pnl_color = "#34d399" if total_pnl >= 0 else "#f87171"
+        recent_rows = ""
+        for t in reversed(trades[-5:]):
+            dt_str = str(t.get('timestamp', t.get('date', '')))[:16]
+            nm = t.get('name', '-')
+            act = t.get('action_label') or t.get('action') or '-'
+            pw = int(t.get('pnl_won', 0) or 0)
+            pc = "#34d399" if pw > 0 else ("#f87171" if pw < 0 else "#9ca3af")
+            recent_rows += (
+                f"<div style='display:flex; justify-content:space-between; font-size:0.78rem; padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.06);'>"
+                f"<span style='color:#cbd5e1;'>{dt_str} · <b>{nm}</b> <span style='color:#94a3b8;'>({act})</span></span>"
+                f"<span style='color:{pc}; font-weight:700;'>{pw:+,}원</span>"
+                f"</div>"
+            )
+
+        upd_note = f" (동기화: {updated_at})" if updated_at else ""
+        return f"""
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.92)); border: 1px solid rgba(99, 102, 241, 0.35); border-left: 4px solid #6366f1; border-radius: 12px; padding: 14px 18px; margin: 14px 0 18px 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                <div style="font-weight:800; color:#a5b4fc; font-size:0.92rem;">
+                    📊 서류상 트랙레코드 vs 실전 키움 계좌 PnL 대조표<span style="font-size:0.74rem; color:#94a3b8; font-weight:500;">{upd_note}</span>
+                </div>
+                <span style="background:rgba(15,23,42,0.8); color:{diag_color}; border:1px solid {diag_color}; border-radius:999px; padding:2px 10px; font-size:0.75rem; font-weight:700;">{diag_badge}</span>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:10px;">
+                <div style="background:rgba(15,23,42,0.65); border-radius:8px; padding:9px 12px;">
+                    <div style="font-size:0.73rem; color:#94a3b8;">실전 승률 (서류 {paper_win_rate:.1f}%)</div>
+                    <div style="font-size:1.05rem; font-weight:800; color:#f8fafc;">{live_wr:.1f}% <span style="font-size:0.75rem; color:#94a3b8;">({n_win}승 {n_loss}패)</span></div>
+                </div>
+                <div style="background:rgba(15,23,42,0.65); border-radius:8px; padding:9px 12px;">
+                    <div style="font-size:0.73rem; color:#94a3b8;">실전 손익비 (서류 {paper_rr:.2f}:1)</div>
+                    <div style="font-size:1.05rem; font-weight:800; color:{'#34d399' if payoff_ratio >= 1.2 else '#fbbf24'};">{payoff_ratio:.2f} : 1 <span style="font-size:0.74rem; color:#94a3b8;">(PF {pf:.2f})</span></div>
+                </div>
+                <div style="background:rgba(15,23,42,0.65); border-radius:8px; padding:9px 12px;">
+                    <div style="font-size:0.73rem; color:#94a3b8;">평균 익절 vs 평균 손절</div>
+                    <div style="font-size:0.88rem; font-weight:700; color:#e2e8f0;"><span style="color:#34d399;">+{avg_win_won:,}원</span> / <span style="color:#f87171;">-{avg_loss_won:,}원</span></div>
+                </div>
+                <div style="background:rgba(15,23,42,0.65); border-radius:8px; padding:9px 12px;">
+                    <div style="font-size:0.73rem; color:#94a3b8;">실전 누적 실현손익</div>
+                    <div style="font-size:1.05rem; font-weight:800; color:{pnl_color};">{total_pnl:+,}원</div>
+                </div>
+            </div>
+            <div style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.73rem; color:#94a3b8; margin-bottom:3px;">
+                    <span>30건 통계 증명 진행률</span><span><b>{n_total} / {target_samples}건 ({prog_pct}%)</b></span>
+                </div>
+                <div style="height:6px; background:rgba(148,163,184,0.2); border-radius:999px; overflow:hidden;">
+                    <div style="width:{prog_pct}%; height:100%; background:linear-gradient(90deg, #6366f1, #34d399);"></div>
+                </div>
+            </div>
+            <div style="margin-top:8px;">
+                <div style="font-size:0.75rem; color:#94a3b8; font-weight:700; margin-bottom:4px;">최근 실전 청산 5건</div>
+                {recent_rows}
+            </div>
+        </div>
+        """
+    except Exception as e:
+        logger.debug(f"실전 계좌 PnL 대조표 렌더링 생략: {e}")
+        return ""
+
+
 def render_monthly_history_html():
     """
     웹 대시보드용 '최근 1개월 종가베팅 성과 히스토리' 탭 HTML 생성
@@ -510,6 +643,7 @@ def render_monthly_history_html():
     end_date = now.strftime('%Y-%m-%d')
 
     tuning = get_self_tuning_insights()
+    live_cmp_html = render_live_account_comparison_html(win_rate, rr_ratio)
     summary_html = f"""
     <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1)); border: 1px solid rgba(16, 185, 129, 0.35); border-left: 4px solid #10b981; border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; font-size: 0.85rem; line-height: 1.6;">
         <div style="font-weight: 800; color: #34d399; font-size: 0.92rem; margin-bottom: 4px;">
@@ -542,7 +676,7 @@ def render_monthly_history_html():
             <div class="stat-sub">폭락장 매수 차단 · 현금 100% 보존</div>
         </div>
     </div>
-    """
+    """ + live_cmp_html
 
     history_cards_html = ""
     for h in history:

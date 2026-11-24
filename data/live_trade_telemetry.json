@@ -1,0 +1,95 @@
+{
+  "updated_at": "2026-11-24 11:07:14",
+  "trades": [
+    {
+      "timestamp": "2026-11-10 09:04:17",
+      "date": "2026-11-10",
+      "name": "안랩",
+      "track": "CLOSING_BETTING",
+      "action": "TAKE_PROFIT_1",
+      "action_label": "1차 50% 분할익절",
+      "pnl_won": 1465,
+      "ret_pct": 1.6
+    },
+    {
+      "timestamp": "2026-11-11 09:01:01",
+      "date": "2026-11-11",
+      "name": "삼성에스디에스",
+      "track": "CLOSING_BETTING",
+      "action": "TAKE_PROFIT_1",
+      "action_label": "1차 50% 분할익절",
+      "pnl_won": 3967,
+      "ret_pct": 1.71
+    },
+    {
+      "timestamp": "2026-11-11 09:09:49",
+      "date": "2026-11-11",
+      "name": "삼성E&A",
+      "track": "CLOSING_BETTING",
+      "action": "TAKE_PROFIT_1",
+      "action_label": "1차 50% 분할익절",
+      "pnl_won": 1070,
+      "ret_pct": 1.66
+    },
+    {
+      "timestamp": "2026-11-11 09:15:31",
+      "date": "2026-11-11",
+      "name": "삼성E&A",
+      "track": "CLOSING_BETTING",
+      "action": "TAKE_PROFIT_SYNC",
+      "action_label": "실계좌 익절 동기화",
+      "pnl_won": 421,
+      "ret_pct": 0.65
+    },
+    {
+      "timestamp": "2026-11-12 09:01:02",
+      "date": "2026-11-12",
+      "name": "한미약품",
+      "track": "CLOSING_BETTING",
+      "action": "STOP_LOSS",
+      "action_label": "실계좌 손절 청산",
+      "pnl_won": -44062,
+      "ret_pct": -8.66
+    },
+    {
+      "timestamp": "2026-11-12 09:11:52",
+      "date": "2026-11-12",
+      "name": "원익홀딩스",
+      "track": "CLOSING_BETTING",
+      "action": "STOP_LOSS",
+      "action_label": "실계좌 손절 청산",
+      "pnl_won": -17539,
+      "ret_pct": -3.72
+    },
+    {
+      "timestamp": "2026-11-12 10:17:07",
+      "date": "2026-11-12",
+      "name": "한화솔루션",
+      "track": "SWING_TREND",
+      "action": "STOP_LOSS",
+      "action_label": "실계좌 손절 청산",
+      "pnl_won": -29796,
+      "ret_pct": -5.4
+    },
+    {
+      "timestamp": "2026-11-19 10:01:42",
+      "date": "2026-11-19",
+      "name": "원익홀딩스",
+      "track": "CLOSING_BETTING",
+      "action": "STOP_LOSS",
+      "action_label": "칼손절 집행",
+      "pnl_won": -8562,
+      "ret_pct": -2.2
+    },
+    {
+      "timestamp": "2026-11-19 10:02:09",
+      "date": "2026-11-19",
+      "name": "와이씨",
+      "track": "CLOSING_BETTING",
+      "action": "STOP_LOSS",
+      "action_label": "칼손절 집행",
+      "pnl_won": -9179,
+      "ret_pct": -2.36
+    }
+  ]
+}
