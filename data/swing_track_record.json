@@ -1043,9 +1043,9 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/053800/total",
-          "highest_price": 123700,
+          "highest_price": 123900,
           "lowest_price": 114700,
-          "max_return_pct": 8.03,
+          "max_return_pct": 8.21,
           "status": "1차 분할 달성",
           "is_blocked_sim": true,
           "completed": false,
