@@ -1091,14 +1091,15 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/003230/total",
-          "highest_price": 1301000,
+          "highest_price": 1315000,
           "lowest_price": 1177000,
-          "max_return_pct": 7.97,
-          "status": "1차 분할 달성",
+          "max_return_pct": 9.13,
+          "status": "2차 전량 달성",
           "is_blocked_sim": false,
-          "completed": false,
+          "completed": true,
           "holding_days": 1,
-          "is_success": true
+          "is_success": true,
+          "final_return_pct": 9.13
         },
         {
           "code": "036540",
@@ -1140,7 +1141,7 @@
           "final_return_pct": -4.59
         }
       ],
-      "evaluated": false,
+      "evaluated": true,
       "blocked": false,
       "risk_score": 34
     }
