@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-24 11:07:14",
+  "updated_at": "2026-11-25 09:00:58",
   "trades": [
     {
       "timestamp": "2026-11-10 09:04:17",
@@ -90,6 +90,26 @@
       "action_label": "칼손절 집행",
       "pnl_won": -9179,
       "ret_pct": -2.36
+    },
+    {
+      "timestamp": "2026-11-24 16:00:00",
+      "date": "2026-11-24",
+      "name": "안랩",
+      "track": "CLOSING_BETTING",
+      "action": "TAKE_PROFIT_1",
+      "action_label": "1차 40% 분할익절",
+      "pnl_won": 2831,
+      "ret_pct": 2.33
+    },
+    {
+      "timestamp": "2026-11-25 09:00:58",
+      "date": "2026-11-25",
+      "name": "SFA반도체",
+      "track": "SWING_TREND",
+      "action": "STOP_LOSS",
+      "action_label": "비상 폭락 손절(-4.59% ≤ -4.5%)",
+      "pnl_won": -9020,
+      "ret_pct": -4.59
     }
   ]
 }
