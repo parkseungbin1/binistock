@@ -1,36 +1,12 @@
 {
-  "updated_at": "2026-11-25 19:53:04",
+  "updated_at": "2026-11-25 23:05:55",
   "overnight_risk": {
-    "score": 100,
-    "level": "RED",
-    "recommendation": "BLOCK_BETTING",
-    "status_message": "오늘 밤 초고위험 경제지표 발표 (4건 감지) ➔ 매수 전면 차단 권장",
+    "score": 50,
+    "level": "YELLOW",
+    "recommendation": "HALF_BETTING",
+    "status_message": "오늘 밤 주요 지표 발표 예정 ➔ 투자금 50% 축소(하프 켈리) 권장",
     "is_friday": false,
     "detected_events": [
-      {
-        "event": "근원 소비지출물가지수 (MoM)  (10월)",
-        "desc": "미국 개인소비지출(PCE) 물가지수 발표",
-        "date": "2026-11-25",
-        "time": "22:30",
-        "country": "미국",
-        "weight": 80
-      },
-      {
-        "event": "근원 개인소비지출 물가지수 (YoY)  (10월)",
-        "desc": "미국 개인소비지출(PCE) 물가지수 발표",
-        "date": "2026-11-25",
-        "time": "22:30",
-        "country": "미국",
-        "weight": 0
-      },
-      {
-        "event": "GDP (QoQ)  (3분기)",
-        "desc": "미국 GDP(국내총생산) 발표",
-        "date": "2026-11-25",
-        "time": "22:30",
-        "country": "미국",
-        "weight": 50
-      },
       {
         "event": "한국 금리 결정  (11월)",
         "desc": "한국은행 금통위 기준금리 결정",
@@ -140,6 +116,14 @@
     }
   ],
   "burn_catalysts": [
+    {
+      "corp_name": "온타이드",
+      "ratio_pct": 13.05,
+      "burn_date": "2026-11-25</div>\n        </div>",
+      "d_day": null,
+      "boost_score": 10,
+      "tag": "🔥 시총 13.05% 소각 예정 (D-?)"
+    },
     {
       "corp_name": "린드먼아시아",
       "ratio_pct": 11.9,
@@ -269,20 +253,20 @@
       "tag": "🔥 시총 0.99% 소각 예정 (D-5)"
     },
     {
-      "corp_name": "LG",
-      "ratio_pct": 0.73,
-      "burn_date": "2026-11-30",
-      "d_day": 5,
+      "corp_name": "삼성전기",
+      "ratio_pct": 0.26,
+      "burn_date": "2026-12-02",
+      "d_day": 7,
       "boost_score": 0,
-      "tag": "🔥 시총 0.73% 소각 예정 (D-5)"
+      "tag": "🔥 시총 0.26% 소각 예정 (D-7)"
     },
     {
-      "corp_name": "LG전자",
-      "ratio_pct": 0.45,
-      "burn_date": "2026-11-30",
-      "d_day": 5,
+      "corp_name": "차바이오텍",
+      "ratio_pct": 0.18,
+      "burn_date": "2026-12-01</div>\n        </div>",
+      "d_day": null,
       "boost_score": 0,
-      "tag": "🔥 시총 0.45% 소각 예정 (D-5)"
+      "tag": "🔥 시총 0.18% 소각 예정 (D-?)"
     },
     {
       "corp_name": "남광토건",
@@ -310,6 +294,11 @@
     }
   ],
   "stock_boost_map": {
+    "온타이드": {
+      "boost_score": 10,
+      "tag": "🔥 시총 13.05% 소각 예정 (D-?)",
+      "reason": "자사주 시총 13.05% 영구소각 호재"
+    },
     "린드먼아시아": {
       "boost_score": 10,
       "tag": "🔥 시총 11.90% 소각 예정 (D-7)",
@@ -390,15 +379,15 @@
       "tag": "🔥 시총 0.99% 소각 예정 (D-5)",
       "reason": "자사주 시총 0.99% 영구소각 호재"
     },
-    "LG": {
+    "삼성전기": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.73% 소각 예정 (D-5)",
-      "reason": "자사주 시총 0.73% 영구소각 호재"
+      "tag": "🔥 시총 0.26% 소각 예정 (D-7)",
+      "reason": "자사주 시총 0.26% 영구소각 호재"
     },
-    "LG전자": {
+    "차바이오텍": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.45% 소각 예정 (D-5)",
-      "reason": "자사주 시총 0.45% 영구소각 호재"
+      "tag": "🔥 시총 0.18% 소각 예정 (D-?)",
+      "reason": "자사주 시총 0.18% 영구소각 호재"
     },
     "남광토건": {
       "boost_score": 0,
