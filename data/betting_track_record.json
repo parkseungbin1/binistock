@@ -1954,17 +1954,17 @@
           "catalyst_url": "https://n.news.naver.com/mnews/article/277/0005846715",
           "catalyst_source": "아시아경제",
           "catalyst_body": "보안 규제 강화에 따른 수요 증가로 안랩의 내년 영업이익이 올해보다 38.2% 늘어날 것이란 전망이 나왔다. 기존 계약이 매출로 반영되고 인력 증가 폭은 제한되면서 수익성도 개선된다는 분석이다. 2",
-          "close_price": 121200,
-          "price": 121200,
+          "close_price": 121500,
+          "price": 121500,
           "change_pct": 5.12,
           "amount_eok": 549,
           "marcap": 1348532527200,
           "marcap_str": "1조 3,485억",
-          "target_1": 123624,
+          "target_1": 125145,
           "target_1_pct": "+2.0%",
-          "target_2": 127260,
+          "target_2": 127575,
           "target_2_pct": "+5.0%",
-          "stop_loss": 118776,
+          "stop_loss": 119070,
           "stop_loss_pct": "-2.0%",
           "score": 94,
           "reason": "거래대금 549억 폭발(시총회전율 4.1%) · 고가 마감 양봉(윗꼬리 29%) · 차트: ⚡ 20일선 지지 우상향 파동 · 당일 VWAP 상회(+0.2% · 고점 14:32) · 막판 동시호가 수급 유입(+0.41%) · 🏦외인·기관 쌍끌이 수급 유입(+7점) · 🟢S급 확정호재(+12점)",
@@ -1979,14 +1979,25 @@
             "실적/공시호재"
           ],
           "sr_status": "⚡ 20일선 지지 우상향 파동",
-          "support_price": 110055,
+          "support_price": 119070,
           "next_resistance": "137,300원 (+13.3%)",
-          "chart_url": "https://m.stock.naver.com/domestic/stock/053800/total"
+          "chart_url": "https://m.stock.naver.com/domestic/stock/053800/total",
+          "open_price": 125600,
+          "next_high_price": 147500,
+          "next_low_price": 123200,
+          "gap_pct": 3.37,
+          "high_pct": 21.4,
+          "low_pct": 1.4,
+          "path_whipsaw": false,
+          "is_success": true,
+          "plan_return_pct": 3.27
         }
       ],
-      "evaluated": false,
+      "evaluated": true,
       "blocked": false,
-      "risk_score": 34
+      "risk_score": 34,
+      "success_count": 1,
+      "total_count": 1
     }
   ]
 }
