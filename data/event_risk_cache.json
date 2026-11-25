@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25 14:51:22",
+  "updated_at": "2026-11-25 15:08:11",
   "overnight_risk": {
     "score": 100,
     "level": "RED",
@@ -141,14 +141,6 @@
   ],
   "burn_catalysts": [
     {
-      "corp_name": "피스피스스튜디오",
-      "ratio_pct": 18.02,
-      "burn_date": "2026-11-25",
-      "d_day": 0,
-      "boost_score": 10,
-      "tag": "🔥 시총 18.02% 소각 예정 (D-0)"
-    },
-    {
       "corp_name": "앤디포스",
       "ratio_pct": 10.78,
       "burn_date": "2026-11-30",
@@ -253,6 +245,14 @@
       "tag": "🔥 시총 1.68% 소각 예정 (D-5)"
     },
     {
+      "corp_name": "한국가구",
+      "ratio_pct": 1.34,
+      "burn_date": "2026-12-04",
+      "d_day": 9,
+      "boost_score": 0,
+      "tag": "🔥 시총 1.34% 소각 예정 (D-9)"
+    },
+    {
       "corp_name": "동화약품",
       "ratio_pct": 1.23,
       "burn_date": "2026-12-07",
@@ -318,11 +318,6 @@
     }
   ],
   "stock_boost_map": {
-    "피스피스스튜디오": {
-      "boost_score": 10,
-      "tag": "🔥 시총 18.02% 소각 예정 (D-0)",
-      "reason": "자사주 시총 18.02% 영구소각 호재"
-    },
     "앤디포스": {
       "boost_score": 10,
       "tag": "🔥 시총 10.78% 소각 예정 (D-5)",
@@ -387,6 +382,11 @@
       "boost_score": 0,
       "tag": "🔥 시총 1.68% 소각 예정 (D-5)",
       "reason": "자사주 시총 1.68% 영구소각 호재"
+    },
+    "한국가구": {
+      "boost_score": 0,
+      "tag": "🔥 시총 1.34% 소각 예정 (D-9)",
+      "reason": "자사주 시총 1.34% 영구소각 호재"
     },
     "동화약품": {
       "boost_score": 0,

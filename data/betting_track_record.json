@@ -1998,6 +1998,53 @@
       "risk_score": 34,
       "success_count": 1,
       "total_count": 1
+    },
+    {
+      "date": "2026-11-25",
+      "picks": [
+        {
+          "code": "090430",
+          "name": "아모레퍼시픽",
+          "market": "KOSPI",
+          "sector": "화학/소재",
+          "catalyst": "아모레퍼시픽재단, AI 시대 '생각하는 힘' 묻는다…연구자 6인 특강",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/421/0009306656",
+          "catalyst_source": "뉴스1",
+          "catalyst_body": "아모레퍼시픽재단이 인공지능(AI) 대전환 시대에 스스로 질문하고 생각하는 힘을 주제로 연구자 6인의 강연을 연다. 쉼·문학·취향·사랑·자연·감각 등 일상과 맞닿은 키워드로 '나'와 '우리'에 대한 ",
+          "close_price": 147000,
+          "price": 147000,
+          "change_pct": 5.15,
+          "amount_eok": 623,
+          "marcap": 8598435573000,
+          "marcap_str": "8조 5,984억",
+          "target_1": 149940,
+          "target_1_pct": "+2.0%",
+          "target_2": 154350,
+          "target_2_pct": "+5.0%",
+          "stop_loss": 144060,
+          "stop_loss_pct": "-2.0%",
+          "score": 91,
+          "reason": "거래대금 623억 폭발(시총회전율 0.7%) · 고가 마감 양봉(윗꼬리 19%) · 차트: 🎯 20일 박스권 상단 저항 돌파 안착 · 상대거래량 RVOL 2.3배(회전율 0.7%) · 당일 VWAP 상회(+0.4% · 고점 10:59) · 🏦외인·기관 쌍끌이 수급 유입(+7점)",
+          "holding_period": "당일 15:10~15:30 매수 → 익일 09:00~09:20 전량 분할 매도",
+          "tags": [
+            "거래대금폭발",
+            "단단한양봉",
+            "익일시초가노림",
+            "박스권상단돌파",
+            "저항돌파안착",
+            "쌍끌이수급"
+          ],
+          "sr_status": "🎯 20일 박스권 상단 저항 돌파 안착",
+          "support_price": 144100,
+          "next_resistance": "152,500원 (+3.8% 여유)",
+          "chart_url": "https://m.stock.naver.com/domestic/stock/090430/total",
+          "status": "🛡️ AI 리스크 차단 (미매수 사후추적)",
+          "risk_score": 90
+        }
+      ],
+      "evaluated": false,
+      "blocked": true,
+      "risk_score": 90
     }
   ]
 }
