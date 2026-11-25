@@ -49,7 +49,7 @@ jobs:
 
       # DART 공시 상태 캐시 복원
       - name: Restore disclosure state
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: state
           key: disclosure-state-${{ github.run_id }}
@@ -65,7 +65,7 @@ jobs:
 
       - name: Save disclosure state
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: state
           key: disclosure-state-${{ github.run_id }}
@@ -92,11 +92,11 @@ jobs:
 
       - name: Upload Pages Artifact
         if: steps.check_dist.outputs.has_dist == 'true'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: 'dist'
 
       - name: Deploy to GitHub Pages
         if: steps.check_dist.outputs.has_dist == 'true'
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
