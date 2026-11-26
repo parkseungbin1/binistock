@@ -1147,9 +1147,9 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/004170/total",
-          "highest_price": 278500,
+          "highest_price": 280500,
           "lowest_price": 265500,
-          "max_return_pct": 2.01,
+          "max_return_pct": 2.75,
           "status": "진행중 (1일차)",
           "is_blocked_sim": true,
           "completed": false,
