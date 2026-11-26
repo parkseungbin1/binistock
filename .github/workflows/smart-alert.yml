@@ -31,11 +31,10 @@ concurrency:
 
 jobs:
   dispatch:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    outputs:
+      has_dist: ${{ steps.check_dist.outputs.has_dist }}
 
     steps:
       - uses: actions/checkout@v5
@@ -96,7 +95,15 @@ jobs:
         with:
           path: 'dist'
 
+  deploy:
+    needs: dispatch
+    if: needs.dispatch.outputs.has_dist == 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
       - name: Deploy to GitHub Pages
-        if: steps.check_dist.outputs.has_dist == 'true'
         id: deployment
         uses: actions/deploy-pages@v5
