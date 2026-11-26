@@ -1,74 +1,6 @@
 {
   "history": [
     {
-      "date": "2026-10-21",
-      "evaluated": true,
-      "picks": [
-        {
-          "code": "028050",
-          "name": "삼성E&A",
-          "market": "KOSPI",
-          "sector": "플랜트/건설",
-          "catalyst": "사우디 아람코 파드힐리 가스전 수주 랠리 및 20일선 돌파 안착",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/028050/news",
-          "catalyst_source": "한국경제",
-          "entry_price": 47800,
-          "price": 47800,
-          "change_pct": 10.9,
-          "highest_price": 56500,
-          "lowest_price": 50500,
-          "max_return_pct": 18.2,
-          "target_1": 50190,
-          "target_1_pct": "+5.0%",
-          "target_2": 52102,
-          "target_2_pct": "+9.0%",
-          "stop_loss": 46366,
-          "stop_loss_pct": "-3.0%",
-          "amount_eok": 840,
-          "marcap": 5390000000000,
-          "marcap_str": "5조 3,900억",
-          "status": "2차 전량 달성",
-          "completed": true,
-          "holding_days": 1,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/028050/total",
-          "rule_v": 2,
-          "final_return_pct": 18.2,
-          "is_success": true
-        },
-        {
-          "code": "207940",
-          "name": "삼성바이오로직스",
-          "market": "KOSPI",
-          "sector": "제약/바이오",
-          "catalyst": "4공장 풀가동 및 북미 빅파마 대규모 CMO 수주 모멘텀",
-          "catalyst_url": "https://m.stock.naver.com/domestic/stock/207940/news",
-          "catalyst_source": "매일경제",
-          "entry_price": 1412000,
-          "price": 1412000,
-          "change_pct": 1.95,
-          "highest_price": 1417000,
-          "lowest_price": 1355000,
-          "max_return_pct": 0.35,
-          "target_1": 1482600,
-          "target_1_pct": "+5.0%",
-          "target_2": 1539080,
-          "target_2_pct": "+9.0%",
-          "stop_loss": 1369640,
-          "stop_loss_pct": "-3.0%",
-          "amount_eok": 690,
-          "marcap": 65547986616000,
-          "marcap_str": "65조 5,480억",
-          "status": "손절 이탈",
-          "completed": true,
-          "holding_days": 1,
-          "chart_url": "https://m.stock.naver.com/domestic/stock/207940/total",
-          "rule_v": 2,
-          "final_return_pct": -3.0,
-          "is_success": false
-        }
-      ]
-    },
-    {
       "date": "2026-10-23",
       "evaluated": true,
       "picks": [
@@ -1138,13 +1070,14 @@
             "5일선지지"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/108490/total",
-          "highest_price": 283000,
-          "lowest_price": 283000,
-          "max_return_pct": 0.0,
-          "status": "🛡️ 리스크 차단 (사후추적)",
+          "highest_price": 299500,
+          "lowest_price": 281000,
+          "max_return_pct": 5.83,
+          "status": "1차 분할 달성",
           "is_blocked_sim": true,
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1,
+          "is_success": true
         },
         {
           "code": "326030",
@@ -1176,13 +1109,13 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/326030/total",
-          "highest_price": 88500,
-          "lowest_price": 88500,
-          "max_return_pct": 0.0,
-          "status": "🛡️ 리스크 차단 (사후추적)",
+          "highest_price": 92500,
+          "lowest_price": 88600,
+          "max_return_pct": 4.52,
+          "status": "진행중 (1일차)",
           "is_blocked_sim": true,
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1
         },
         {
           "code": "004170",
@@ -1214,13 +1147,13 @@
             "안정적손익비"
           ],
           "chart_url": "https://m.stock.naver.com/domestic/stock/004170/total",
-          "highest_price": 273000,
-          "lowest_price": 273000,
-          "max_return_pct": 0.0,
-          "status": "🛡️ 리스크 차단 (사후추적)",
+          "highest_price": 278500,
+          "lowest_price": 265500,
+          "max_return_pct": 2.01,
+          "status": "진행중 (1일차)",
           "is_blocked_sim": true,
           "completed": false,
-          "holding_days": 0
+          "holding_days": 1
         }
       ],
       "evaluated": false,
