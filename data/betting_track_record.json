@@ -1982,6 +1982,88 @@
       "risk_score": 90,
       "success_count": 1,
       "total_count": 1
+    },
+    {
+      "date": "2026-11-26",
+      "picks": [
+        {
+          "code": "352820",
+          "name": "하이브",
+          "market": "KOSPI",
+          "sector": "오디오물 출판/",
+          "catalyst": "\"하이브, BTS 다음 타자가 중요…캣츠아이·코르티스 티켓 파워에 눈길",
+          "catalyst_url": "https://n.news.naver.com/mnews/article/014/0005609358",
+          "catalyst_source": "파이낸셜뉴스",
+          "catalyst_body": "iM증권은 하이브가 방탄소년단(BTS) 투어 이후에도 이익 성장을 이어갈지를 가를 변수로 캣츠아이와 코르티스의 서구권 공연 수익을 꼽았다. 투자의견 ‘매수’와 목표주가 29만원을 유지했다. 황지원 ",
+          "close_price": 187500,
+          "price": 187500,
+          "change_pct": 5.99,
+          "amount_eok": 565,
+          "marcap": 8082531750000,
+          "marcap_str": "8조 825억",
+          "target_1": 191250,
+          "target_1_pct": "+2.0%",
+          "target_2": 196875,
+          "target_2_pct": "+5.0%",
+          "stop_loss": 183750,
+          "stop_loss_pct": "-2.0%",
+          "score": 74,
+          "reason": "거래대금 565억 폭발(시총회전율 0.7%) · 고가 마감 양봉(윗꼬리 14%) · 차트: ⚡ 20일선 지지 우상향 파동 · 당일 VWAP 상회(+1.2% · 고점 14:38) · 🏦외인·기관 쌍끌이 수급 유입(+7점) · 🚨악재공시((주)하이브 (정정)유상증자결정()",
+          "holding_period": "⏸️ AI 74점 (<90점 기준 미달) — 화면 점수 공개용 · 자동매수 관망",
+          "tags": [
+            "거래대금폭발",
+            "단단한양봉",
+            "익일시초가노림",
+            "20일선지지",
+            "우상향파동",
+            "쌍끌이수급"
+          ],
+          "sr_status": "⚡ 20일선 지지 우상향 파동",
+          "support_price": 160415,
+          "next_resistance": "195,400원 (+4.2%)",
+          "chart_url": "https://m.stock.naver.com/domestic/stock/352820/total",
+          "status": "⏸️ 90점 미달 관망 (AI 74점 · 사후추적)"
+        },
+        {
+          "code": "347850",
+          "name": "디앤디파마텍",
+          "market": "KOSDAQ",
+          "sector": "제약/바이오",
+          "catalyst": "디앤디파마텍 — 당일 개별 뉴스·공시 없음 (순수 수급·차트 포착)",
+          "catalyst_url": "https://m.stock.naver.com/domestic/stock/347850/news",
+          "catalyst_source": "뉴스 없음 · 수급/차트",
+          "catalyst_body": "별도 단독 뉴스·공시 없이 거래대금·수급·차트 조건으로 포착된 종목입니다.",
+          "close_price": 36850,
+          "price": 36850,
+          "change_pct": 8.86,
+          "amount_eok": 388,
+          "marcap": 1694959564650,
+          "marcap_str": "1조 6,950억",
+          "target_1": 37587,
+          "target_1_pct": "+2.0%",
+          "target_2": 38692,
+          "target_2_pct": "+5.0%",
+          "stop_loss": 36113,
+          "stop_loss_pct": "-2.0%",
+          "score": 66,
+          "reason": "거래대금 388억 폭발(시총회전율 2.3%) · 고가 마감 양봉(윗꼬리 32%) · 차트: 거래대금 수급 우수 · 당일 VWAP 상회(+0.1% · 고점 13:40) · 🔥당일 주도섹터(제약/바이오) 동조화 · 🏦외인·기관 쌍끌이 수급 유입(+7점) · ⚠️20일선 하회 역배열",
+          "holding_period": "⏸️ AI 66점 (<90점 기준 미달) — 화면 점수 공개용 · 자동매수 관망",
+          "tags": [
+            "거래대금폭발",
+            "단단한양봉",
+            "익일시초가노림",
+            "쌍끌이수급"
+          ],
+          "sr_status": "거래대금 수급 우수",
+          "support_price": 36113,
+          "next_resistance": "38,692원",
+          "chart_url": "https://m.stock.naver.com/domestic/stock/347850/total",
+          "status": "⏸️ 90점 미달 관망 (AI 66점 · 사후추적)"
+        }
+      ],
+      "evaluated": false,
+      "blocked": false,
+      "risk_score": 47
     }
   ]
 }
