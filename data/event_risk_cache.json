@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-11-26 19:43:50",
+  "updated_at": "2026-11-27 07:03:05",
   "overnight_risk": {
-    "score": 0,
-    "level": "GREEN",
-    "recommendation": "NORMAL_BETTING",
-    "status_message": "오늘 밤 위험 경제지표 없음 ➔ 정상 오버나잇 베팅 허용",
-    "is_friday": false,
+    "score": 20,
+    "level": "YELLOW",
+    "recommendation": "BLOCK_BETTING",
+    "status_message": "주말 65시간 미대응 리스크 방어 (100% 현금 보존 권장)",
+    "is_friday": true,
     "detected_events": []
   },
   "derivatives": {
@@ -13,7 +13,7 @@
       "type": "KR_QUADRUPLE",
       "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
       "date": "2026-12-10",
-      "d_day": 14,
+      "d_day": 13,
       "is_quadruple": true,
       "country": "한국"
     },
@@ -21,7 +21,7 @@
       "type": "KR_QUADRUPLE",
       "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
       "date": "2026-12-10",
-      "d_day": 14,
+      "d_day": 13,
       "is_quadruple": true,
       "country": "한국"
     },
@@ -30,7 +30,7 @@
         "type": "KR_QUADRUPLE",
         "name": "국내 선물·옵션 동시만기일 (네 마녀의 날)",
         "date": "2026-12-10",
-        "d_day": 14,
+        "d_day": 13,
         "is_quadruple": true,
         "country": "한국"
       },
@@ -38,7 +38,7 @@
         "type": "US_QUADRUPLE",
         "name": "미국 선물·옵션 동시만기일",
         "date": "2026-12-18",
-        "d_day": 22,
+        "d_day": 21,
         "is_quadruple": true,
         "country": "미국"
       },
@@ -46,7 +46,7 @@
         "type": "KR_OPTION",
         "name": "국내 옵션만기일",
         "date": "2027-01-14",
-        "d_day": 49,
+        "d_day": 48,
         "is_quadruple": false,
         "country": "한국"
       },
@@ -54,7 +54,7 @@
         "type": "US_OPTION",
         "name": "미국 옵션만기일",
         "date": "2027-01-15",
-        "d_day": 50,
+        "d_day": 49,
         "is_quadruple": false,
         "country": "미국"
       }
@@ -62,24 +62,10 @@
   },
   "upcoming_catalysts": [
     {
-      "category": "BOK_RATE",
-      "title": "한국은행 금융통화위원회 기준금리 결정",
-      "date": "2026-11-26",
-      "d_day": 0,
-      "impact": "HIGH",
-      "is_catalyst": false,
-      "is_risk": true,
-      "sectors": [
-        "금융",
-        "증권",
-        "건설"
-      ]
-    },
-    {
       "category": "EXPO_CONFERENCE",
       "title": "CES (국제전자제품박람회)",
       "date": "2027-01-06",
-      "d_day": 41,
+      "d_day": 40,
       "impact": "HIGH",
       "is_catalyst": true,
       "is_risk": false,
@@ -106,89 +92,89 @@
       "corp_name": "린드먼아시아",
       "ratio_pct": 12.41,
       "burn_date": "2026-12-02",
-      "d_day": 6,
+      "d_day": 5,
       "boost_score": 10,
-      "tag": "🔥 시총 12.41% 소각 예정 (D-6)"
+      "tag": "🔥 시총 12.41% 소각 예정 (D-5)"
     },
     {
       "corp_name": "앤디포스",
       "ratio_pct": 10.78,
       "burn_date": "2026-11-30",
-      "d_day": 4,
+      "d_day": 3,
       "boost_score": 10,
-      "tag": "🔥 시총 10.78% 소각 예정 (D-4)"
+      "tag": "🔥 시총 10.78% 소각 예정 (D-3)"
     },
     {
       "corp_name": "칩스앤미디어",
       "ratio_pct": 6.54,
       "burn_date": "2027-04-30",
-      "d_day": 155,
+      "d_day": 154,
       "boost_score": 7,
-      "tag": "🔥 시총 6.54% 소각 예정 (D-155)"
+      "tag": "🔥 시총 6.54% 소각 예정 (D-154)"
     },
     {
       "corp_name": "지어소프트",
       "ratio_pct": 4.91,
       "burn_date": "2026-12-01",
-      "d_day": 5,
+      "d_day": 4,
       "boost_score": 4,
-      "tag": "🔥 시총 4.91% 소각 예정 (D-5)"
+      "tag": "🔥 시총 4.91% 소각 예정 (D-4)"
     },
     {
       "corp_name": "매일홀딩스",
       "ratio_pct": 4.85,
       "burn_date": "2026-12-07",
-      "d_day": 11,
+      "d_day": 10,
       "boost_score": 4,
-      "tag": "🔥 시총 4.85% 소각 예정 (D-11)"
+      "tag": "🔥 시총 4.85% 소각 예정 (D-10)"
     },
     {
       "corp_name": "에스원",
       "ratio_pct": 4.01,
       "burn_date": "2026-11-30",
-      "d_day": 4,
+      "d_day": 3,
       "boost_score": 4,
-      "tag": "🔥 시총 4.01% 소각 예정 (D-4)"
+      "tag": "🔥 시총 4.01% 소각 예정 (D-3)"
+    },
+    {
+      "corp_name": "케이씨씨",
+      "ratio_pct": 3.41,
+      "burn_date": "2026-12-03",
+      "d_day": 6,
+      "boost_score": 4,
+      "tag": "🔥 시총 3.41% 소각 예정 (D-6)"
     },
     {
       "corp_name": "매일유업",
       "ratio_pct": 2.32,
       "burn_date": "2026-12-07",
-      "d_day": 11,
+      "d_day": 10,
       "boost_score": 0,
-      "tag": "🔥 시총 2.32% 소각 예정 (D-11)"
-    },
-    {
-      "corp_name": "제일기획",
-      "ratio_pct": 2.1,
-      "burn_date": "2026-12-01",
-      "d_day": 5,
-      "boost_score": 0,
-      "tag": "🔥 시총 2.10% 소각 예정 (D-5)"
+      "tag": "🔥 시총 2.32% 소각 예정 (D-10)"
     },
     {
       "corp_name": "나무가",
       "ratio_pct": 1.95,
       "burn_date": "2026-12-03",
-      "d_day": 7,
+      "d_day": 6,
       "boost_score": 0,
-      "tag": "🔥 시총 1.95% 소각 예정 (D-7)"
+      "tag": "🔥 시총 1.95% 소각 예정 (D-6)"
     },
     {
       "corp_name": "한국가구",
       "ratio_pct": 1.34,
       "burn_date": "2026-12-04",
-      "d_day": 8,
+      "d_day": 7,
       "boost_score": 0,
-      "tag": "🔥 시총 1.34% 소각 예정 (D-8)"
+      "tag": "🔥 시총 1.34% 소각 예정 (D-7)"
     },
     {
       "corp_name": "동화약품",
       "ratio_pct": 1.23,
       "burn_date": "2026-12-07",
-      "d_day": 11,
+      "d_day": 10,
       "boost_score": 0,
-      "tag": "🔥 시총 1.23% 소각 예정 (D-11)"
+      "tag": "🔥 시총 1.23% 소각 예정 (D-10)"
     },
     {
       "corp_name": "동국홀딩스",
@@ -202,25 +188,25 @@
       "corp_name": "삼성SDI",
       "ratio_pct": 1.0,
       "burn_date": "2026-12-03",
-      "d_day": 7,
+      "d_day": 6,
       "boost_score": 0,
-      "tag": "🔥 시총 1.00% 소각 예정 (D-7)"
+      "tag": "🔥 시총 1.00% 소각 예정 (D-6)"
     },
     {
       "corp_name": "테스",
       "ratio_pct": 0.33,
       "burn_date": "2026-12-04",
-      "d_day": 8,
+      "d_day": 7,
       "boost_score": 0,
-      "tag": "🔥 시총 0.33% 소각 예정 (D-8)"
+      "tag": "🔥 시총 0.33% 소각 예정 (D-7)"
     },
     {
       "corp_name": "삼성전기",
       "ratio_pct": 0.26,
       "burn_date": "2026-12-02",
-      "d_day": 6,
+      "d_day": 5,
       "boost_score": 0,
-      "tag": "🔥 시총 0.26% 소각 예정 (D-6)"
+      "tag": "🔥 시총 0.26% 소각 예정 (D-5)"
     },
     {
       "corp_name": "차바이오텍",
@@ -234,33 +220,33 @@
       "corp_name": "SDN",
       "ratio_pct": 0.11,
       "burn_date": "2026-12-03",
-      "d_day": 7,
+      "d_day": 6,
       "boost_score": 0,
-      "tag": "🔥 시총 0.11% 소각 예정 (D-7)"
+      "tag": "🔥 시총 0.11% 소각 예정 (D-6)"
     },
     {
       "corp_name": "남광토건",
       "ratio_pct": 0.09,
       "burn_date": "2026-12-02",
-      "d_day": 6,
+      "d_day": 5,
       "boost_score": 0,
-      "tag": "🔥 시총 0.09% 소각 예정 (D-6)"
+      "tag": "🔥 시총 0.09% 소각 예정 (D-5)"
     },
     {
       "corp_name": "카카오뱅크",
       "ratio_pct": 0.06,
       "burn_date": "2026-12-03",
-      "d_day": 7,
+      "d_day": 6,
       "boost_score": 0,
-      "tag": "🔥 시총 0.06% 소각 예정 (D-7)"
+      "tag": "🔥 시총 0.06% 소각 예정 (D-6)"
     },
     {
       "corp_name": "윙스풋",
       "ratio_pct": 0.02,
       "burn_date": "2026-12-08",
-      "d_day": 12,
+      "d_day": 11,
       "boost_score": 0,
-      "tag": "🔥 시총 0.02% 소각 예정 (D-12)"
+      "tag": "🔥 시총 0.02% 소각 예정 (D-11)"
     }
   ],
   "stock_boost_map": {
@@ -271,57 +257,57 @@
     },
     "린드먼아시아": {
       "boost_score": 10,
-      "tag": "🔥 시총 12.41% 소각 예정 (D-6)",
+      "tag": "🔥 시총 12.41% 소각 예정 (D-5)",
       "reason": "자사주 시총 12.41% 영구소각 호재"
     },
     "앤디포스": {
       "boost_score": 10,
-      "tag": "🔥 시총 10.78% 소각 예정 (D-4)",
+      "tag": "🔥 시총 10.78% 소각 예정 (D-3)",
       "reason": "자사주 시총 10.78% 영구소각 호재"
     },
     "칩스앤미디어": {
       "boost_score": 7,
-      "tag": "🔥 시총 6.54% 소각 예정 (D-155)",
+      "tag": "🔥 시총 6.54% 소각 예정 (D-154)",
       "reason": "자사주 시총 6.54% 영구소각 호재"
     },
     "지어소프트": {
       "boost_score": 4,
-      "tag": "🔥 시총 4.91% 소각 예정 (D-5)",
+      "tag": "🔥 시총 4.91% 소각 예정 (D-4)",
       "reason": "자사주 시총 4.91% 영구소각 호재"
     },
     "매일홀딩스": {
       "boost_score": 4,
-      "tag": "🔥 시총 4.85% 소각 예정 (D-11)",
+      "tag": "🔥 시총 4.85% 소각 예정 (D-10)",
       "reason": "자사주 시총 4.85% 영구소각 호재"
     },
     "에스원": {
       "boost_score": 4,
-      "tag": "🔥 시총 4.01% 소각 예정 (D-4)",
+      "tag": "🔥 시총 4.01% 소각 예정 (D-3)",
       "reason": "자사주 시총 4.01% 영구소각 호재"
+    },
+    "케이씨씨": {
+      "boost_score": 4,
+      "tag": "🔥 시총 3.41% 소각 예정 (D-6)",
+      "reason": "자사주 시총 3.41% 영구소각 호재"
     },
     "매일유업": {
       "boost_score": 0,
-      "tag": "🔥 시총 2.32% 소각 예정 (D-11)",
+      "tag": "🔥 시총 2.32% 소각 예정 (D-10)",
       "reason": "자사주 시총 2.32% 영구소각 호재"
-    },
-    "제일기획": {
-      "boost_score": 0,
-      "tag": "🔥 시총 2.10% 소각 예정 (D-5)",
-      "reason": "자사주 시총 2.10% 영구소각 호재"
     },
     "나무가": {
       "boost_score": 0,
-      "tag": "🔥 시총 1.95% 소각 예정 (D-7)",
+      "tag": "🔥 시총 1.95% 소각 예정 (D-6)",
       "reason": "자사주 시총 1.95% 영구소각 호재"
     },
     "한국가구": {
       "boost_score": 0,
-      "tag": "🔥 시총 1.34% 소각 예정 (D-8)",
+      "tag": "🔥 시총 1.34% 소각 예정 (D-7)",
       "reason": "자사주 시총 1.34% 영구소각 호재"
     },
     "동화약품": {
       "boost_score": 0,
-      "tag": "🔥 시총 1.23% 소각 예정 (D-11)",
+      "tag": "🔥 시총 1.23% 소각 예정 (D-10)",
       "reason": "자사주 시총 1.23% 영구소각 호재"
     },
     "동국홀딩스": {
@@ -331,17 +317,17 @@
     },
     "삼성SDI": {
       "boost_score": 0,
-      "tag": "🔥 시총 1.00% 소각 예정 (D-7)",
+      "tag": "🔥 시총 1.00% 소각 예정 (D-6)",
       "reason": "자사주 시총 1.00% 영구소각 호재"
     },
     "테스": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.33% 소각 예정 (D-8)",
+      "tag": "🔥 시총 0.33% 소각 예정 (D-7)",
       "reason": "자사주 시총 0.33% 영구소각 호재"
     },
     "삼성전기": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.26% 소각 예정 (D-6)",
+      "tag": "🔥 시총 0.26% 소각 예정 (D-5)",
       "reason": "자사주 시총 0.26% 영구소각 호재"
     },
     "차바이오텍": {
@@ -351,22 +337,22 @@
     },
     "SDN": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.11% 소각 예정 (D-7)",
+      "tag": "🔥 시총 0.11% 소각 예정 (D-6)",
       "reason": "자사주 시총 0.11% 영구소각 호재"
     },
     "남광토건": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.09% 소각 예정 (D-6)",
+      "tag": "🔥 시총 0.09% 소각 예정 (D-5)",
       "reason": "자사주 시총 0.09% 영구소각 호재"
     },
     "카카오뱅크": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.06% 소각 예정 (D-7)",
+      "tag": "🔥 시총 0.06% 소각 예정 (D-6)",
       "reason": "자사주 시총 0.06% 영구소각 호재"
     },
     "윙스풋": {
       "boost_score": 0,
-      "tag": "🔥 시총 0.02% 소각 예정 (D-12)",
+      "tag": "🔥 시총 0.02% 소각 예정 (D-11)",
       "reason": "자사주 시총 0.02% 영구소각 호재"
     }
   }
